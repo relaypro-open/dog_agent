@@ -1,0 +1,41 @@
+sudo yum install rpm-build
+#weird prelink errors when including erts in release:
+sudo yum remove prelink 
+
+#create tar release
+./rebar3 as local tar
+
+#edit dog.spec to match env - set to local
+rpmbuild -ba dog.spec
+
+sudo yum install gnupg2
+#copy gpg keys from another computer:
+scp -r ~/.gnupg $TARGET:
+gpg --list-keys
+# export key to place at root of repo: (must use gpg >2)
+gpg --armor --output dog_public_gpg_key.gpg --export
+aws s3 cp dog_public_gpg_key.gpg s3://dog-repo/
+# make dog_public_gpg_key.gpg public in s3 console
+
+git clone https://github.com/crohr/rpm-s3 --recurse-submodules
+vim ~/.rpmmacros
+cd rpm-s3
+chmod u+x bootstrap.sh
+sudo ./bootstrap.sh
+#create repo in s3:
+
+eval "$(gpg-agent --daemon)"
+AWS_ACCESS_KEY="" AWS_SECRET_KEY="" ./bin/rpm-s3 -b dog-repo -p "centos/6" --sign /home/dog/rpmbuild/RPMS/x86_64/dog-20180810.205926-1.x86_64.rpm --region us-east-1 --visibility public-read
+
+#On target instance:
+
+#add gpg key to centos:
+sudo rpm --import https://dog-repo.s3.amazonaws.com/dog_public_gpg_key.gpg
+
+#add yum repo:
+echo "[dog]
+name = dog repo
+baseurl = https://s3.amazonaws.com/dog-repo/centos/6" | sudo tee /etc/yum.repos.d/dog.repo
+
+yum makecache --disablerepo=* --enablerepo=dog
+

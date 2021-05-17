@@ -1,0 +1,20 @@
+[Unit]
+Description=dog
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+User=dog
+Group=dog
+Type=simple
+Environment=HOSTKEY=$(sha1sum /var/consul/data/pki/certs/server.crt | cut -d" " -f1)
+Environment=HOME=/opt/dog
+Environment=ERL_EPMD_PORT=4371
+ExecStart=/opt/dog/dog start
+ExecStop=/opt/dog/dog stop
+WorkingDirectory=/opt/dog
+Restart=on-failure
+RuntimeDirectory=dog
+
+[Install]
+WantedBy=multi-user.target

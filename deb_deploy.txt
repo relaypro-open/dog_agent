@@ -1,0 +1,43 @@
+#create release
+rm -rf _build
+./rebar3 as qa release
+
+#create .deb
+#ensure '{env, "qa"}.' in pkgx.config
+./pkgx deb
+
+#setup deb-s3:
+sudo apt install ruby ruby-bundler
+git clone https://github.com/krobertson/deb-s3.git
+cd deb-s3/
+bundle install
+
+#create s3 bucket, set as public (used console)
+
+#create gpg key
+
+apt install gpgv2
+add to ~/.gpg/config:
+# Prioritize stronger algorithms for new keys.
+default-preference-list SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 BZIP2 ZLIB ZIP Uncompressed
+# Use a stronger digest than the default SHA1 for certifications.
+cert-digest-algo SHA512
+
+gpg --gen-key (4096 rsa key)
+gpg --list-keys
+aws s3 cp dog_public_gpg_key.gpg s3://dog-repo/
+sudo apt install gnupg-agent
+eval "$(gpg-agent --daemon)"
+#deploy deb:
+./deb-s3 upload --bucket dog-repo /opt/dog/_build/qa/rel/dog_20190728.1337-1_amd64.deb --sign=F35673D4
+
+#import key on dog agent instance(s):
+curl https://dog-repo.s3.amazonaws.com/dog_public_gpg_key.gpg | sudo apt-key add -
+
+#setup repo on instance:
+ #/etc/apt/sources.list.d/dog.list 
+deb https://dog-repo.s3.amazonaws.com/ stable main
+sudo apt update
+
+#install dog agent
+sudo apt install dog

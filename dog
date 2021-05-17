@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export RELX_REPLACE_OS_VARS=true
+
+export HOME=/opt/dog
+
+${HOME}/bin/dog $1
