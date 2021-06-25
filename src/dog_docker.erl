@@ -14,7 +14,7 @@
 
 -spec is_docker_instance() -> boolean().
 is_docker_instance() ->
- DockerSocketUrl = maps:get(docker_http,maps:from_list(application:get_all_env(erldocker))),
+ DockerSocketUrl = maps:get(docker_http,maps:from_list(application:get_all_env(erldocker)),<<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>),
  case hackney:get(DockerSocketUrl) of
    {ok,_,_,_} -> 
      lager:info("is_docker_instance: true"),
