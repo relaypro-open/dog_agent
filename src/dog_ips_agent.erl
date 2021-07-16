@@ -108,7 +108,7 @@ init(_Args) ->
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
                   watch_interfaces),
-    KeepalivePollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
+    KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
     ok = watch_config(),
