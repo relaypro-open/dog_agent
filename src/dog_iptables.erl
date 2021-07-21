@@ -616,6 +616,15 @@ remove_docker(Ruleset) ->
         Line3
               end, Ruleset).
 
+remove_lxd(Ruleset) ->
+    lists:map(fun(Line0) ->
+        Line1 = re:replace(Line0, "^-A INPUT -i lxdbr0 (.*)","",[{return,list}]),
+        Line2 = re:replace(Line1, "^-A FORWARD -o lxdbr0 (.*)","",[{return,list}]),
+        Line3 = re:replace(Line2, "^-A FORWARD -i lxdbr0 (.*)","",[{return,list}]),
+        Line4 = re:replace(Line3, "^-A POSTROUTING -o lxdbr0 (.*)","",[{return,list}]),
+        Line4
+              end, Ruleset).
+
 remove_empty_lists(List) ->
   [L || L <- List, L =/= []].
 
@@ -638,7 +647,8 @@ normalize_ruleset(Ruleset) ->
     RulesetNoQuotes = [remove_quotes(Line) || Line <- RulesetSplit],
     RulesetTrimmed = [trim(Line, trailing, " ") || Line <- RulesetNoQuotes],
     RulesetNoDocker = remove_docker(RulesetTrimmed),
-    RulesetNoBlankLines = remove_empty_lists(RulesetNoDocker),
+    RulesetNoLxd = remove_lxd(RulesetNoDocker),
+    RulesetNoBlankLines = remove_empty_lists(RulesetNoLxd),
     RulesetNormalized = lists:flatten(lists:join("\n",RulesetNoBlankLines)),
     RulesetNormalized.
 
