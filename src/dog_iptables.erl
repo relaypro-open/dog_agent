@@ -8,7 +8,9 @@
          normalize_ruleset/1,
          publish_to_queue/2,
          read_current_ipv4_ipsets/0,
+         read_current_ipv4_ipsets/1,
          read_current_ipv4_iptables/0,
+         read_current_ipv4_iptables/1,
          read_current_ipv6_ipsets/0,
          read_current_ipv6_iptables/0,
          remove_comments/1,
@@ -27,6 +29,7 @@
         ]).
 
 -define(IP4TABLES_SAVE_COMMAND, "echo \"\`/home/dog/bin/iptables-save -t filter\`\"").
+-define(IP4TABLES_SAVE_COMPLETE_COMMAND,  "echo \"\`/home/dog/bin/iptables-save\`\"").
 -define(IP6TABLES_SAVE_COMMAND, "echo \"\`/home/dog/bin/ip6tables-save -t filter\`\"").
 -define(IP4TABLES_RESTORE_COMMAND, "/home/dog/bin/iptables-restore").
 -define(IP6TABLES_RESTORE_COMMAND, "/home/dog/bin/ip6tables-restore").
@@ -187,7 +190,8 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
               lager:error("validate_ipv4_ruleset Result: ~p", [Result]),
               error
           end
-      end
+      end,
+      dog_lxd:iptables()
   end.
 
 -spec persist_ipv6_tables() -> error | ok.
@@ -225,8 +229,11 @@ apply_ipv6_ruleset(TempFile) ->
     end.
 
 -spec read_current_ipv4_iptables() -> string().
-
 read_current_ipv4_iptables() ->
+    read_current_ipv4_iptables(filter).
+
+-spec read_current_ipv4_iptables(Complete :: filter | complete ) -> string().
+read_current_ipv4_iptables(Complete) ->
     UseIpsets = application:get_env(dog, use_ipsets, true),
     Enforcing = application:get_env(dog, enforcing, true),
     Cmd = case Enforcing of
@@ -235,7 +242,12 @@ read_current_ipv4_iptables() ->
         true ->
         case UseIpsets of
           false ->
-            ?IP4TABLES_SAVE_COMMAND;
+                case Complete of
+                    filter ->
+                        ?IP4TABLES_SAVE_COMMAND;
+                    complete ->
+                        ?IP4TABLES_SAVE_COMPLETE_COMMAND
+                end;
           true ->
             "cat " ++ (?RUNDIR) ++ "/ip4tables_iptables.txt"
         end
@@ -263,8 +275,11 @@ read_current_ipv6_iptables() ->
     Result.
 
 -spec read_current_ipv4_ipsets() -> string().
-
 read_current_ipv4_ipsets() ->
+    read_current_ipv4_ipsets(filter).
+
+-spec read_current_ipv4_ipsets(Complete :: filter | complete ) -> string().
+read_current_ipv4_ipsets(Complete) ->
     UseIpsets = application:get_env(dog, use_ipsets, true),
     Enforcing = application:get_env(dog, enforcing, true),
     Cmd = case Enforcing of
@@ -274,7 +289,12 @@ read_current_ipv4_ipsets() ->
           false ->
             "cat " ++ (?RUNDIR) ++ "/ip4tables_ipsets.txt";
           true ->
-            ?IP4TABLES_SAVE_COMMAND
+                case Complete of
+                    filter ->
+                        ?IP4TABLES_SAVE_COMMAND;
+                    complete ->
+                        ?IP4TABLES_SAVE_COMPLETE_COMMAND
+                end
         end
       end,
     Result = os:cmd(Cmd),

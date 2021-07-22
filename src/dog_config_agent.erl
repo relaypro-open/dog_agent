@@ -141,6 +141,7 @@ group_routing_key() ->
 %%----------------------------------------------------------------------
 init(_Args) ->
     Provider = dog_interfaces:get_provider(),
+    dog_lxd:init(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
