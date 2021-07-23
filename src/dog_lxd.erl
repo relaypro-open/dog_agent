@@ -14,10 +14,22 @@
 init() ->
     case check_lxd_firewall_rules() of
         true ->
-            application:set_env(dog, lxd_instance, true),
-            {ok,Url} = get_lxd_url(),
-            application:set_env(dog, lxd_url, Url);
+            lager:info("LXD firewall rules: true"),
+            Url = get_lxd_url(),
+            case Url of
+                error ->
+                    lager:error("LXD socket: false"),
+                    lager:info("LXD instance: false"),
+                    error;
+                {ok, _} ->
+                    lager:info("LXD socket: true"),
+                    lager:info("LXD instance: true"),
+                    application:set_env(dog, lxd_instance, true),
+                    application:set_env(dog, lxd_url, Url)
+            end;
         false ->
+            lager:info("LXD firewall rules: false"),
+            lager:info("LXD instance: false"),
             application:set_env(dog, lxd_instance, false)
     end.
 
