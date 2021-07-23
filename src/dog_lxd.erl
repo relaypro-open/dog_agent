@@ -109,5 +109,5 @@ iptables() ->
      false ->
          pass;
      true ->
-        os:cmd("sudo systemctl restart lxd-bridge.service")
+          {0,_} = dog_exec:exec("sudo systemctl restart lxd-bridge.service")
   end.
