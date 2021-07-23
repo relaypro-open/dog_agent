@@ -169,6 +169,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           os:cmd(ConcatCmd),
           Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile, 
           Result = os:cmd(Cmd),
+          dog_lxd:iptables(),
           case Result of
             [] ->
               lager:info("applied ipv4 ruleset"),
@@ -182,6 +183,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           file:write_file(RemoveNatFile,rm_nat()),
           Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND, 
           Result = os:cmd(Cmd),
+          dog_lxd:iptables(),
           case Result of
             [] ->
               lager:info("applied ipv4 ruleset"),
@@ -190,8 +192,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
               lager:error("validate_ipv4_ruleset Result: ~p", [Result]),
               error
           end
-      end,
-      dog_lxd:iptables()
+      end
   end.
 
 -spec persist_ipv6_tables() -> error | ok.
