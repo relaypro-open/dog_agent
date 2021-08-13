@@ -156,7 +156,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           write_ipv4_docker_nat_ruleset(DockerNatRuleset),
           write_ipv4_docker_filter_ruleset(DockerFilterRuleset),
           {ok, TrainerFilter} = file:read_file(TrainerFilterFile),
-          TrainerFilterWithoutCommit = string:join(lists:subtract(string:split(binary_to_list(TrainerFilter),"\n",all),["COMMIT"]),"\n"),
+          TrainerFilterWithoutCommit = string:join(lists:subtract(dog_string:split(binary_to_list(TrainerFilter),"\n",all),["COMMIT"]),"\n"),
           DockerTrainerFilterFile = (?RUNDIR) ++ "/iptables-docker-trainer-filter.txt",
           file:write_file(DockerTrainerFilterFile,TrainerFilterWithoutCommit),
           DockerNatFile = (?RUNDIR) ++ "/iptables-docker-nat.txt",
@@ -661,7 +661,7 @@ create_hash(Ruleset) ->
 
 -spec rule_count(Ruleset :: string()) -> number().
 rule_count(Ruleset) ->
-  Rules = lists:filter(fun(X) -> case re:run(X,"^-A\s") of nomatch -> false; _ -> true end end, string:split(Ruleset,"\n", all) ),
+  Rules = lists:filter(fun(X) -> case re:run(X,"^-A\s") of nomatch -> false; _ -> true end end, dog_string:split(Ruleset,"\n", all) ),
   length(Rules).
 
 encode(Data) ->

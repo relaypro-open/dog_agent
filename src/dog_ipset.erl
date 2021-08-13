@@ -119,13 +119,13 @@ match_only_add(Line) ->
 
 -spec normalize_ipset(Ipset :: iolist()) -> iolist().
 normalize_ipset(Ipset) ->
-    IpsetSplit = string:split(Ipset,"\n",all),
+    IpsetSplit = dog_string:split(Ipset,"\n",all),
     IpsetSorted = lists:sort(IpsetSplit),
     IpsetAddOnly = lists:filter(fun(X) -> match_only_add(X) end, IpsetSorted),
-    IpsetNotNew = [lists:flatten(string:replace(X,"n "," ",all)) || X <- IpsetAddOnly],
-    IpsetNot32 = [lists:flatten(string:replace(X,"/32","",all)) || X <- IpsetNotNew],
-    IpsetNot128 = [lists:flatten(string:replace(X,"/128","",all)) || X <- IpsetNot32],
-    IpsetTrimmed = [string:trim(Line,trailing," ") || Line <- IpsetNot128],
+    IpsetNotNew = [lists:flatten(dog_string:replace(X,"n "," ",all)) || X <- IpsetAddOnly],
+    IpsetNot32 = [lists:flatten(dog_string:replace(X,"/32","",all)) || X <- IpsetNotNew],
+    IpsetNot128 = [lists:flatten(dog_string:replace(X,"/128","",all)) || X <- IpsetNot32],
+    IpsetTrimmed = [dog_string:trim(Line,trailing," ") || Line <- IpsetNot128],
     IpsetNormalized = lists:flatten(lists:join("\n",IpsetTrimmed)),
     IpsetNormalized.
 
