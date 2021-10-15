@@ -179,6 +179,8 @@ init(_Args) ->
         Hostkey
     end,
     lager:info("Hostkey: ~p",[Hostkey1]),
+    ReplyQueue = "reply." ++ binary_to_list(Hostkey),
+    dog_interfaces:create_rpc_queue(#{broker => default, name => list_to_atom(ReplyQueue), queue => ReplyQueue}),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,

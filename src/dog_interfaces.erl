@@ -1,8 +1,10 @@
 -module(dog_interfaces).
 
 -include("dog.hrl").
+-define(CONSUME_TIMEOUT, 1000).
 
 -export([
+        create_rpc_queue/1,
         ec2_macs/0,
         ec2_public_ipv4/0, 
         fqdn/0,
@@ -221,15 +223,114 @@ get_host_key() ->
 
 -spec publish_to_queue(Config :: map() ) -> any().
 publish_to_queue(Config) ->
+	rpc_request(Config).
+%publish_to_queue(Config) ->
+%    lager:info("publish_to_queue: ~p",[Config]),
+%    UserData = #{config => Config},
+%    Count = 1,
+%    BrokerRoutingKey = <<"ips">>,
+%    Pid = erlang:self(),
+%    Message = term_to_binary([{count, Count}, {local_time, calendar:local_time()}, {pid, Pid}, {user_data, UserData}]),
+%    Response = thumper:publish(Message, ?IPsExchange, BrokerRoutingKey),
+%    lager:info("Response: ~p~n", [Response]),
+%    Response.
+
+
+-spec rpc_request(Config :: map() ) -> any().
+rpc_request(Config) ->
     lager:info("publish_to_queue: ~p",[Config]),
     UserData = #{config => Config},
     Count = 1,
     BrokerRoutingKey = <<"ips">>,
     Pid = erlang:self(),
-    Message = term_to_binary([{count, Count}, {local_time, calendar:local_time()}, {pid, Pid}, {user_data, UserData}]),
+    CorrelationId = base64:encode(erlang:integer_to_binary(erlang:unique_integer())),
+    Hostkey = dog_config:hostkey(),
+    ReplyQueue = "reply." ++ binary_to_list(Hostkey),
+    Message = term_to_binary([{count, Count}, {local_time, calendar:local_time()}, {pid, Pid}, {user_data, UserData},{reply_to, ReplyQueue},{correlation_id, CorrelationId}]),
     Response = thumper:publish(Message, ?IPsExchange, BrokerRoutingKey),
     lager:info("Response: ~p~n", [Response]),
+    consume_response(default, list_to_binary(ReplyQueue), CorrelationId),
     Response.
+
+-spec create_rpc_queue(QueueDefinition ::
+                map()) -> atom().
+
+create_rpc_queue(#{broker := Broker, name := Name,
+            queue := QueueName}) ->
+    Op = {'queue.declare',
+      [{queue, list_to_binary(QueueName)},
+       {auto_delete, true}, {durable, true}]},
+    lager:debug("Name: ~p", [Name]),
+    case dog_thumper_sup:amqp_op(Broker, Name, [Op]) of
+      ok -> ok;
+      Error -> lager:error("Error: ~p", [Error]), Error
+    end.
+
+consume_response(Broker, Queue, CorrelationId) ->
+    Ref = make_ref(),
+    Me = self(),
+    Callback = fun(DT, RK, Payload) ->
+                       Me ! {Ref, {DT, RK, Payload}},
+                       ack
+               end,
+    {ok, ConsumerPid} = thumper_consumer:start_link(undefined, Broker, Queue, Callback),
+    lager:debug("created consumer ~p", [ConsumerPid]),
+    fun Rcv(true) ->
+            unlink(ConsumerPid),
+            thumper_consumer:stop(ConsumerPid),
+			ack;
+        Rcv(false) ->
+            receive
+                {Ref, {_DT, _RK, Payload}} ->
+					lager:debug("Payload: ~p~n",[Payload]),
+					Proplist = binary_to_term(Payload),
+					lager:debug("Proplist: ~p", [Proplist]),
+					ReceivedCorrelationId = proplists:get_value(correlation_id, Proplist),
+					case ReceivedCorrelationId == CorrelationId of
+						true ->
+							Rcv(true);
+						false ->
+							Rcv(false)
+					end
+            after ?CONSUME_TIMEOUT ->
+                      {error, timeout}
+            end
+	end.
+
+%-spec subscribe_to_rpc_response(QueueDefinition ::
+%                    map()) -> atom().
+%
+%subscribe_to_rpc_response(#{broker := Broker,
+%                name := Name, queue := QueueName},CorrelationId) ->
+%    Pid = erlang:self(),
+%    Callback = fun (A, B, C) ->
+%               rpc_response_callback(A, B, C, Pid, CorrelationId)
+%           end,
+%    case dog_thumper_sup:ensure_consumer(up, Name, Broker,
+%                     list_to_binary(QueueName), Callback)
+%    of
+%      {ok, _ChildPid} -> ok;
+%      {error, {already_up, _ChildPid}} -> ok
+%    end.
+
+%-spec rpc_response_callback(_, _, binary(),
+%                   pid()) -> ack.
+%
+%rpc_response_callback(DeliveryTag, RoutingKey,
+%                 Payload, Pid, CorrelationId) ->
+%    lager:debug("message: ~p, ~p, ~p",
+%        [DeliveryTag, RoutingKey, binary_to_term(Payload)]),
+%    lager:debug("Payload: ~p", [Payload]),
+%    Proplist = binary_to_term(Payload),
+%    lager:debug("Proplist: ~p", [Proplist]),
+%    ReceivedCorrelationId = proplists:get_value(correlation_id, Proplist),
+%    case ReceivedCorrelationId == CorrelationId of
+%        true ->
+%            Pid ! sub,
+%            ack;
+%        false ->
+%            pass
+%    end.
 
 -spec ip_to_queue() -> any().
 ip_to_queue() ->

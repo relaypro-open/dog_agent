@@ -6,7 +6,7 @@
          create_hash/1,
          ensure_iptables_consumer/1,
          normalize_ruleset/1,
-         publish_to_queue/2,
+         %publish_to_queue/2,
          read_current_ipv4_ipsets/0,
          read_current_ipv4_iptables/0,
          read_current_ipv6_ipsets/0,
@@ -578,24 +578,29 @@ bind_iptables_updates(#{broker := Broker,
       Error -> lager:error("Error: ~p", [Error]), Error
     end.
 
--spec publish_to_queue(_, _) -> any().
-
-publish_to_queue(Hostname, Ruleset) ->
-    UserData = [{name, Hostname}, {ruleset, Ruleset}],
-    Count = 1,
-    %RoutingKey = <<"ENVIRONMENT.LOCATION.ROLE.HOST">>,
-    %RoutingKey = <<"qa.*.proxy.*">>,
-    {ok, RoutingKey} =
-    dog_ips_agent:get_group_routing_key(),
-    Pid = erlang:self(),
-    Message = term_to_binary([{count, Count},
-                  {local_time, calendar:local_time()}, {pid, Pid},
-                  {user_data, UserData}]),
-    Response = thumper:publish(Message, ?IptablesExchange,
-                   RoutingKey),
-    lager:debug("publish_to_queue Response: ~p~n",
-        [Response]),
-    Response.
+%-spec publish_to_queue(_, _) -> any().
+%
+%publish_to_queue(Hostname, Ruleset) ->
+%    UserData = [{name, Hostname}, {ruleset, Ruleset}],
+%    Count = 1,
+%    %RoutingKey = <<"ENVIRONMENT.LOCATION.ROLE.HOST">>,
+%    %RoutingKey = <<"qa.*.proxy.*">>,
+%    {ok, RoutingKey} =
+%    dog_ips_agent:get_group_routing_key(),
+%    Pid = erlang:self(),
+%    CorrelationId = base64:encode(erlang:integer_to_binary(erlang:unique_integer())),
+%    Hostkey = dog_config:hostkey(),
+%    ReplyQueue = "rpc." ++ binary_to_list(Hostkey),
+%    Message = term_to_binary([{count, Count},
+%                  {local_time, calendar:local_time()}, {pid, Pid},
+%                  {user_data, UserData}
+%                  ,{correlation_id, CorrelationId},{reply_to, ReplyQueue}
+%                             ]),
+%    Response = thumper:publish(Message, ?IptablesExchange,
+%                   RoutingKey),
+%    lager:debug("publish_to_queue Response: ~p~n",
+%        [Response]),
+%    Response.
 
 remove_comments(Ruleset) ->
   NoCommentRulesList = lists:filter(fun(X) -> case re:run(X,"^#") of nomatch -> true; _ -> false end end, split(Ruleset,"\n", all) ),
