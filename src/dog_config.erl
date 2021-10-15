@@ -2,12 +2,20 @@
 
 -include("dog.hrl").
 
--export([ensure_config_updates/0, environment/0,
+-export([
          do_watch_config/0, 
-         get_config/0, group/0, hostkey/0, location/0,
-         read_config_file/0, routing_key/0,
+         ensure_config_updates/0, 
+         environment/0,
+         get_config/0, group/0, 
+         hostkey/0, 
+         location/0,
+         read_config_file/0, 
+         read_local_config_file/0, 
+         routing_key/0,
          subscribe_to_config_updates/0,
-        write_config_file/4]).
+         write_config_file/4,
+         write_local_config_file/3
+        ]).
 
 -export([broker_config/0]).
 
@@ -142,6 +150,18 @@ handle_callback(Group, Location, Environment,
     supervisor:terminate_child(dog_sup, ips_agent),
     supervisor:restart_child(dog_sup, ips_agent).
 
+-spec write_local_config_file(_, _, _) -> ok.
+
+write_local_config_file(Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroups) ->
+    ConfigMap = #{
+                  ec2_instance_id => Ec2InstanceId,
+                  ec2_availability_zone => Ec2AvailabilityZone,
+                  ec2_security_groups => Ec2SecurityGroups
+                  },
+    ok = file:write_file(?LOCAL_CONFIG_FILE,
+                         jsx:encode(ConfigMap)),
+    ok.
+
 -spec write_config_file(_, _, _, _) -> ok.
 
 write_config_file(Group, Location, Environment,
@@ -151,6 +171,16 @@ write_config_file(Group, Location, Environment,
     ok = file:write_file(?CONFIG_FILE,
                          jsx:encode(ConfigMap)),
     ok.
+
+-spec read_local_config_file() -> Map :: {ok, map()} | atom().
+
+read_local_config_file() ->
+    lager:debug("read_local_config_file()"),
+    case file:read_file(?LOCAL_CONFIG_FILE) of
+        {ok, ConfigJson} ->
+            {ok, jsx:decode(ConfigJson, [return_maps])};
+        _ -> file_read_error
+    end.
 
 -spec read_config_file() -> Map :: {ok, map()} | atom().
 

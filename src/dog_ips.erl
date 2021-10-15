@@ -55,6 +55,9 @@ do_watch_iptables(State) ->
 do_watch_interfaces(StateOld) ->
     %lager:info("State0: ~p", [State0]),
     Provider = dog_state:get_provider(StateOld),
+    Ec2InstanceId = dog_interfaces:ec2_instance_id(),
+    Ec2AvailabilityZone = dog_interfaces:ec2_availability_zone(),
+    Ec2SecurityGroups = dog_interfaces:ec2_security_groups(),
     HostnameOld = dog_state:get_hostname(StateOld),
     InterfacesOld = dog_state:get_interfaces(StateOld),
     {ok, InterfacesNew} =
@@ -88,7 +91,11 @@ do_watch_interfaces(StateOld) ->
                     <<"hash6_iptables">> => Hash6Iptables,
                     <<"provider">> => Provider,
                     <<"updatetype">> => UpdateType,
-                    <<"ipset_hash">> => IpsetHash}),
+                    <<"ipset_hash">> => IpsetHash,
+                    <<"ec2_instance_id">> => Ec2InstanceId,
+                    <<"ec2_availability_zone">> => Ec2AvailabilityZone,
+                    <<"ec2_security_groups">> => Ec2SecurityGroups
+                                   }),
     case InterfacesOld == InterfacesNew of
       false ->
       lager:debug("HostnameOld, InterfacesOld: ~p, ~p",

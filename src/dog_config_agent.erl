@@ -143,6 +143,9 @@ init(_Args) ->
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
+    Ec2InstanceId = dog_interfaces:ec2_instance_id(),
+    Ec2AvailabilityZone = dog_interfaces:ec2_availability_zone(),
+    Ec2SecurityGroups = dog_interfaces:ec2_security_groups(),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
     Hash4Ipsets =
     dog_iptables:create_hash(dog_iptables:read_current_ipv4_ipsets()),
@@ -185,7 +188,9 @@ init(_Args) ->
                 Hash4Ipsets, Hash6Ipsets,
                 Hash4Iptables, Hash6Iptables,
                 Provider, UpdateType,
-                IpsetHash),
+                IpsetHash,Ec2InstanceId,
+                               Ec2AvailabilityZone,
+                               Ec2SecurityGroups),
     lager:debug("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
     dog_interfaces:publish_to_queue(StateMap),

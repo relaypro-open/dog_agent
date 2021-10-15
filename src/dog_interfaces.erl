@@ -3,8 +3,11 @@
 -include("dog.hrl").
 
 -export([
+        ec2_availability_zone/0,
+        ec2_instance_id/0,
         ec2_macs/0,
         ec2_public_ipv4/0, 
+        ec2_security_groups/0,
         fqdn/0,
         get_environment_key/0, 
         get_fqdn/0,
@@ -90,6 +93,75 @@ ec2_public_ipv4() ->
                     {error, notfound};
                 false ->
                     lists:flatten(Results)
+            end
+    end.
+
+-spec ec2_availability_zone() -> list() | {error, notfound}.
+ec2_availability_zone() ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/placement/availability-zone",
+    Method = get,
+    Headers = [],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            lager:error("Error getting ec2_availability_zone"),
+            {error, notfound};
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,InstanceId} = hackney:body(ClientRef),
+                    InstanceId;
+                _ ->
+                    lager:error("Error getting ec2_availability_zone"),
+                    {error,notfound}
+            end
+    end.
+
+-spec ec2_instance_id() -> list() | {error, notfound}.
+ec2_instance_id() ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/instance-id",
+    Method = get,
+    Headers = [],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            lager:error("Error getting ec2_instance_id"),
+            {error, notfound};
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,InstanceId} = hackney:body(ClientRef),
+                    InstanceId;
+                _ ->
+                    lager:error("Error getting ec2_instance_id"),
+                    {error,notfound}
+            end
+    end.
+
+-spec ec2_security_groups() -> list() | {error, notfound}.
+ec2_security_groups() ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/security-groups",
+    Method = get,
+    Headers = [],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    %{ok, integer(), list(), client_ref()} | {ok, integer(), list()} | {error, term()}
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            lager:error("Error getting ec2_security_groups"),
+            {error, notfound};
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,Body} = hackney:body(ClientRef),
+                    SecurityGroups = re:split(Body, "\n", [{return, list}]),
+                    SecurityGroupsStrings = [list_to_binary(Sg) || Sg <- SecurityGroups],
+                    SecurityGroupsStrings;
+                _ ->
+                    lager:error("Error getting ec2_security_groups"),
+                    {error,notfound}
             end
     end.
 
