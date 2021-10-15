@@ -7,7 +7,7 @@
         ec2_instance_id/0,
         ec2_macs/0,
         ec2_public_ipv4/0, 
-        ec2_security_groups/0,
+        ec2_security_group_ids/0,
         fqdn/0,
         get_environment_key/0, 
         get_fqdn/0,
@@ -140,9 +140,27 @@ ec2_instance_id() ->
             end
     end.
 
--spec ec2_security_groups() -> list() | {error, notfound}.
-ec2_security_groups() ->
-    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/security-groups",
+-spec ec2_security_group_ids() -> list() | {error, notfound}.
+ec2_security_group_ids() ->
+    case ec2_macs() of
+        {error, _} ->
+            {error, notfound};
+        Macs ->
+            Results = lists:map(fun(Mac) -> 
+                ec2_security_group_ids(Mac)
+            end, Macs),
+            case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+                true ->
+                    {error, notfound};
+                false ->
+                    lists:flatten(Results)
+            end
+    end.
+
+-spec ec2_security_group_ids(Mac :: string()) -> list() | {error, notfound}.
+ec2_security_group_ids(Mac) ->
+    %http://169.254.169.254/latest/meta-data/network/interfaces/macs/0e:86:2e:35:e9:80/security-group-ids
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/security-group-ids",
     Method = get,
     Headers = [],
     Payload = <<>>,
@@ -150,7 +168,7 @@ ec2_security_groups() ->
     %{ok, integer(), list(), client_ref()} | {ok, integer(), list()} | {error, term()}
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_security_groups"),
+            lager:error("Error getting ec2_security_group_ids"),
             {error, notfound};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -160,7 +178,7 @@ ec2_security_groups() ->
                     SecurityGroupsStrings = [list_to_binary(Sg) || Sg <- SecurityGroups],
                     SecurityGroupsStrings;
                 _ ->
-                    lager:error("Error getting ec2_security_groups"),
+                    lager:error("Error getting ec2_security_group_ids"),
                     {error,notfound}
             end
     end.

@@ -14,7 +14,7 @@
          dog_state/17, 
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
-         get_ec2_security_groups/1,
+         get_ec2_security_group_ids/1,
          get_environment/1,
          get_group/1, 
          get_hash4_ipsets/1, 
@@ -31,7 +31,7 @@
          get_version/1, 
          set_ec2_availability_zone/2,
          set_ec2_instance_id/2,
-         set_ec2_security_groups/2,
+         set_ec2_security_group_ids/2,
          set_environment/2, 
          set_group/2,
          set_hash4_ipsets/2, 
@@ -69,7 +69,7 @@
 
 -type updatetype() :: atom().
 
--type ec2_security_groups() :: list().
+-type ec2_security_group_ids() :: list().
 
 -type ec2_availability_zone() :: string().
 
@@ -79,7 +79,7 @@
     {group, name, location, environment, hostkey,
      interfaces, version, hash4_ipsets, hash6_ipsets,
      hash4_iptables, hash6_iptables, provider, updatetype,
-     ipset_hash,ec2_instance_id,ec2_availability_zone,ec2_security_groups}).
+     ipset_hash,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids}).
 
 -type dog_state() :: #dog_state{}.
 
@@ -90,7 +90,7 @@ dog_state() -> dog_state().
 dog_state(Group, Hostname, Location, Environment,
       Hostkey, Interfaces, Version, Hash4Ipsets, Hash6Ipsets,
       Hash4Iptables, Hash6Iptables, Provider, UpdateType,
-      IpsetHash, Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroups) ->
+      IpsetHash, Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds) ->
     #dog_state{group = Group, name = Hostname,
            location = Location, environment = Environment,
            hostkey = Hostkey, interfaces = Interfaces,
@@ -101,7 +101,7 @@ dog_state(Group, Hostname, Location, Environment,
            updatetype = UpdateType, ipset_hash = IpsetHash,
            ec2_instance_id = Ec2InstanceId,
            ec2_availability_zone = Ec2AvailabilityZone,
-           ec2_security_groups = Ec2SecurityGroups
+           ec2_security_group_ids = Ec2SecurityGroupIds
               }.
 
 -spec get_group(State :: dog_state()) -> binary().
@@ -238,13 +238,13 @@ get_ec2_availability_zone(State) -> State#dog_state.ec2_availability_zone.
 set_ec2_availability_zone(State, Ec2AvailabilityZone) ->
     State#dog_state{ec2_availability_zone = Ec2AvailabilityZone}.
 
--spec get_ec2_security_groups(State :: dog_state()) -> list().
-get_ec2_security_groups(State) -> State#dog_state.ec2_security_groups.
+-spec get_ec2_security_group_ids(State :: dog_state()) -> list().
+get_ec2_security_group_ids(State) -> State#dog_state.ec2_security_group_ids.
 
--spec set_ec2_security_groups(State :: dog_state(),
-            Ec2SecurityGroups :: ec2_security_groups()) -> dog_state().
-set_ec2_security_groups(State, Ec2SecurityGroups) ->
-    State#dog_state{ec2_security_groups = Ec2SecurityGroups}.
+-spec set_ec2_security_group_ids(State :: dog_state(),
+            Ec2SecurityGroupIds :: ec2_security_group_ids()) -> dog_state().
+set_ec2_security_group_ids(State, Ec2SecurityGroupIds) ->
+    State#dog_state{ec2_security_group_ids = Ec2SecurityGroupIds}.
 
 
 to_map(State) ->
@@ -265,7 +265,7 @@ to_map(State) ->
       <<"ipset_hash">> => State#dog_state.ipset_hash,
       <<"ec2_instance_id">> => State#dog_state.ec2_instance_id,
       <<"ec2_availability_zone">> => State#dog_state.ec2_availability_zone,
-      <<"ec2_security_groups">> => State#dog_state.ec2_security_groups
+      <<"ec2_security_group_ids">> => State#dog_state.ec2_security_group_ids
      }.
 
 from_map(StateMap) ->
@@ -287,7 +287,7 @@ from_map(StateMap) ->
         ipset_hash = maps:get(<<"ipset_hash">>,StateMap),
         ec2_instance_id = maps:get(<<"ec2_instance_id">>,StateMap),
         ec2_availability_zone = maps:get(<<"ec2_availability_zone">>,StateMap),
-        ec2_security_groups = maps:get(<<"ec2_security_groups">>,StateMap)
+        ec2_security_group_ids = maps:get(<<"ec2_security_group_ids">>,StateMap)
     }.
 
 to_group_routing_key(State) ->

@@ -152,11 +152,11 @@ handle_callback(Group, Location, Environment,
 
 -spec write_local_config_file(_, _, _) -> ok.
 
-write_local_config_file(Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroups) ->
+write_local_config_file(Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds) ->
     ConfigMap = #{
                   ec2_instance_id => Ec2InstanceId,
                   ec2_availability_zone => Ec2AvailabilityZone,
-                  ec2_security_groups => Ec2SecurityGroups
+                  ec2_security_group_ids => Ec2SecurityGroupIds
                   },
     ok = file:write_file(?LOCAL_CONFIG_FILE,
                          jsx:encode(ConfigMap)),

@@ -57,7 +57,7 @@ do_watch_interfaces(StateOld) ->
     Provider = dog_state:get_provider(StateOld),
     Ec2InstanceId = dog_interfaces:ec2_instance_id(),
     Ec2AvailabilityZone = dog_interfaces:ec2_availability_zone(),
-    Ec2SecurityGroups = dog_interfaces:ec2_security_groups(),
+    Ec2SecurityGroupIds = dog_interfaces:ec2_security_group_ids(),
     HostnameOld = dog_state:get_hostname(StateOld),
     InterfacesOld = dog_state:get_interfaces(StateOld),
     {ok, InterfacesNew} =
@@ -94,7 +94,7 @@ do_watch_interfaces(StateOld) ->
                     <<"ipset_hash">> => IpsetHash,
                     <<"ec2_instance_id">> => Ec2InstanceId,
                     <<"ec2_availability_zone">> => Ec2AvailabilityZone,
-                    <<"ec2_security_groups">> => Ec2SecurityGroups
+                    <<"ec2_security_group_ids">> => Ec2SecurityGroupIds
                                    }),
     case InterfacesOld == InterfacesNew of
       false ->
