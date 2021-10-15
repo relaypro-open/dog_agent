@@ -57,6 +57,30 @@ handle('GET',
             Response = <<"11.22.33.44">>, {ok, [], Response};
         _ -> {503, [], <<"Not Found">>}
     end;
+handle('GET',
+       [<<"latest">>, <<"meta-data">>, <<"instance-id">>],
+       _Req) ->
+    case rand:uniform() of
+        Rand when Rand > 0 ->
+            Response = <<"i-05664d6383520bc3e">>, {ok, [], Response};
+        _ -> {503, [], <<"Not Found">>}
+    end;
+handle('GET',
+       [<<"latest">>, <<"meta-data">>, <<"security-groups">>],
+       _Req) ->
+    case rand:uniform() of
+        Rand when Rand > 0 ->
+            Response = <<"dog-test">>, {ok, [], Response};
+        _ -> {503, [], <<"Not Found">>}
+    end;
+handle('GET',
+       [<<"latest">>, <<"meta-data">>, <<"placement">>,<<"availability-zone">>],
+       _Req) ->
+    case rand:uniform() of
+        Rand when Rand > 0 ->
+            Response = <<"us-east-1a">>, {ok, [], Response};
+        _ -> {503, [], <<"Not Found">>}
+    end;
 handle('GET', [<<"hello">>, <<"world">>], _Req) ->
     %% Reply with a normal response. `ok' can be used instead of `200'
     %% to signal success.
