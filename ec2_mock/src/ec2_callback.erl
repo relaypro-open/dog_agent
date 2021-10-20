@@ -86,6 +86,26 @@ handle('GET',
         _ -> {503, [], <<"Not Found">>}
     end;
 handle('GET',
+       [<<"latest">>, <<"meta-data">>, <<"network">>,
+        <<"interfaces">>, <<"macs">>, <<"00:11:22:33:44:55">>,
+        <<"owner-id">>],
+       _Req) ->
+    case rand:uniform() of
+        Rand when Rand > 0 ->
+            Response = <<"338433425587">>, {ok, [], Response};
+        _ -> {503, [], <<"Not Found">>}
+    end;
+handle('GET',
+       [<<"latest">>, <<"meta-data">>, <<"network">>,
+        <<"interfaces">>, <<"macs">>, <<"22:00:0a:b9:31:e1">>,
+        <<"owner-id">>],
+       _Req) ->
+    case rand:uniform() of
+        Rand when Rand > 0 ->
+            Response = <<"338433425587">>, {ok, [], Response};
+        _ -> {503, [], <<"Not Found">>}
+    end;
+handle('GET',
        [<<"latest">>, <<"meta-data">>, <<"security-groups">>],
        _Req) ->
     case rand:uniform() of
@@ -98,7 +118,7 @@ handle('GET',
        _Req) ->
     case rand:uniform() of
         Rand when Rand > 0 ->
-            Response = <<"us-east-1a">>, {ok, [], Response};
+            Response = <<"us-east-2a">>, {ok, [], Response};
         _ -> {503, [], <<"Not Found">>}
     end;
 handle('GET', [<<"hello">>, <<"world">>], _Req) ->
