@@ -31,7 +31,7 @@ handle('GET',
     case rand:uniform() of
         %Rand when Rand > 5.0e-1 ->
         Rand when Rand > 0 ->
-            Response = <<"22:00:0a:b9:31:e1\n00:11:22:33:44:55">>,
+            Response = <<"22:00:0a:b9:31:e1/\n00:11:22:33:44:55/">>,
             {ok, [], Response};
         _ -> {503, [], <<"Not Found">>}
     end;
