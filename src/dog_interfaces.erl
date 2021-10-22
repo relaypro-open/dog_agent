@@ -97,7 +97,7 @@ ec2_public_ipv4() ->
             end
     end.
 
--spec ec2_availability_zone() -> list() | {error, notfound}.
+-spec ec2_availability_zone() -> string().
 ec2_availability_zone() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/placement/availability-zone",
     Method = get,
@@ -107,7 +107,7 @@ ec2_availability_zone() ->
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
             lager:error("Error getting ec2_availability_zone"),
-            {error, notfound};
+            <<"">>;
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
@@ -115,11 +115,11 @@ ec2_availability_zone() ->
                     InstanceId;
                 _ ->
                     lager:error("Error getting ec2_availability_zone"),
-                    {error,notfound}
+                    <<"">>
             end
     end.
 
--spec ec2_instance_id() -> list() | {error, notfound}.
+-spec ec2_instance_id() -> string().
 ec2_instance_id() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/instance-id",
     Method = get,
@@ -129,7 +129,7 @@ ec2_instance_id() ->
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
             lager:error("Error getting ec2_instance_id"),
-            {error, notfound};
+            <<"">>;
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
@@ -137,28 +137,28 @@ ec2_instance_id() ->
                     InstanceId;
                 _ ->
                     lager:error("Error getting ec2_instance_id"),
-                    {error,notfound}
+                    <<"">>
             end
     end.
 
--spec ec2_security_group_ids() -> list() | {error, notfound}.
+-spec ec2_security_group_ids() -> list() | [].
 ec2_security_group_ids() ->
     case ec2_macs() of
         {error, _} ->
-            {error, notfound};
+            [];
         Macs ->
             Results = lists:map(fun(Mac) -> 
                 ec2_security_group_ids(Mac)
             end, Macs),
             case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
                 true ->
-                    {error, notfound};
+                    [];
                 false ->
                     lists:flatten(Results)
             end
     end.
 
--spec ec2_security_group_ids(Mac :: string()) -> list() | {error, notfound}.
+-spec ec2_security_group_ids(Mac :: string()) -> list() | [].
 ec2_security_group_ids(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/security-group-ids",
     Method = get,
@@ -168,7 +168,7 @@ ec2_security_group_ids(Mac) ->
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
             lager:error("Error getting ec2_security_group_ids"),
-            {error, notfound};
+            [];
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
@@ -178,28 +178,28 @@ ec2_security_group_ids(Mac) ->
                     SecurityGroupsStrings;
                 _ ->
                     lager:error("Error getting ec2_security_group_ids"),
-                    {error,notfound}
+                    []
             end
     end.
 
--spec ec2_owner_id() -> list() | {error, notfound}.
+-spec ec2_owner_id() -> string().
 ec2_owner_id() ->
     case ec2_macs() of
         {error, _} ->
-            {error, notfound};
+            <<"">>;
         Macs ->
             Results = lists:map(fun(Mac) -> 
                 ec2_owner_id(Mac)
             end, Macs),
             case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
                 true ->
-                    {error, notfound};
+                    <<"">>;
                 false ->
                    hd(Results)
             end
     end.
 
--spec ec2_owner_id(Mac :: string()) -> list() | {error, notfound}.
+-spec ec2_owner_id(Mac :: string()) -> string().
 ec2_owner_id(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/owner-id",
     Method = get,
