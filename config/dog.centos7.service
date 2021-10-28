@@ -1,0 +1,23 @@
+[Unit]
+Description=dog
+
+[Service]
+User=dog
+Group=dog
+ExecStart=/opt/dog/dog_start.sh
+#ExecStop=/opt/dog/dog_stop.sh
+PermissionsStartOnly=True
+LimitNOFILE=infinity
+LimitMEMLOCK=infinity
+RuntimeDirectory=oauth_systemd
+PIDFile=/run/dog/dog.pid
+Type=forking
+ExecStartPre=-/bin/mkdir /run/dog      
+ExecStartPre=/bin/chown -R dog:dog /run/dog/
+ExecStopPost=-/bin/rm -f /run/dog/dog.pid
+Restart=on-failure
+TimeoutStopSec=5
+
+
+[Install]
+WantedBy=multi-user.target
