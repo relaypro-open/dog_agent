@@ -317,12 +317,17 @@ get_fqdn() ->
     %If unable to get a unique hostname, use a random uuid
     Fqdn = case string:left(FullHostname,9) of
         "localhost" ->
-            quickrand:seed(),
-            uuid:get_v4_urandom();
+            case Hostname of
+                "localhost" ->
+                    quickrand:seed(),
+                    uuid:get_v4_urandom();
+                _ ->
+                    Hostname
+            end;
         _ ->
-            list_to_binary(FullHostname)
+            FullHostname
     end,
-    {ok, Fqdn}.
+    {ok, binary:list_to_bin(Fqdn)}.
 
 -spec fqdn() -> binary().
 fqdn() ->
