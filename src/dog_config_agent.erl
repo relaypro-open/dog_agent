@@ -143,10 +143,7 @@ init(_Args) ->
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
-    Ec2InstanceId = dog_interfaces:ec2_instance_id(),
-    Ec2AvailabilityZone = dog_interfaces:ec2_availability_zone(),
-    Ec2SecurityGroupIds = dog_interfaces:ec2_security_group_ids(),
-    Ec2OwnerId = dog_interfaces:ec2_owner_id(),
+    {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId} = dog_interfaces:ec2_info(),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
     Hash4Ipsets =
     dog_iptables:create_hash(dog_iptables:read_current_ipv4_ipsets()),

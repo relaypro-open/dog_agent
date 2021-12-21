@@ -4,6 +4,7 @@
 
 -export([
         ec2_availability_zone/0,
+        ec2_info/0,
         ec2_instance_id/0,
         ec2_macs/0,
         ec2_public_ipv4/0, 
@@ -45,40 +46,77 @@ is_softlayer_instance() ->
     Headers = [],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
-    % -> {ok, integer(), list(), client_ref()} | {ok, integer(), list()} | {error, term()}
-    case hackney:request(Method, Url, Headers, Payload, Options) of
-        {error, _Error} ->
-            lager:error("Error checking if softlayer instance"),
-            false;
-        {ok, StatusCode, _RespHeaders, _ClientRef} ->
-            case StatusCode of
-                200 -> true;
-                _ -> false
+    IsSoftlayerInstance = case application:get_env(dog,is_softlayer_instance) of
+        {ok,Boolean} ->
+            Boolean;
+        _ ->
+            case hackney:request(Method, Url, Headers, Payload, Options) of
+                {error, _Error} ->
+                    lager:info("Not a softlayer instance"),
+                    false;
+                {ok, StatusCode, _RespHeaders, _ClientRef} ->
+                    case StatusCode of
+                        200 -> 
+                            true;
+                        _ -> 
+                            false
+                    end
             end
-    end.
+    end,
+    application:set_env(dog,is_softlayer_instance,IsSoftlayerInstance), 
+    IsSoftlayerInstance.
 
 -spec is_ec2_instance() -> boolean().
 is_ec2_instance() ->
-    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/",
-    Method = get,
-    Headers = [],
-    Payload = <<>>,
-    Options = [{connect_timeout,1000}],
-    %{ok, integer(), list(), client_ref()} | {ok, integer(), list()} | {error, term()}
-    case hackney:request(Method, Url, Headers, Payload, Options) of
-        {error, _Error} ->
-            lager:error("Error checking if ec2 instance"),
-            false;
-        {ok, StatusCode, _RespHeaders, _ClientRef} ->
-            case StatusCode of
-                200 -> true;
-                _ -> false
+    IsEc2Istance = case application:get_env(dog,is_ec2_instance) of
+        {ok,Boolean} ->
+            Boolean;
+        _ ->
+            Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/",
+            Method = get,
+            Headers = [],
+            Payload = <<>>,
+            Options = [{connect_timeout,1000}],
+            case hackney:request(Method, Url, Headers, Payload, Options) of
+                {error, _Error} ->
+                    lager:info("Not an ec2 instance"),
+                    false;
+                {ok, StatusCode, _RespHeaders, _ClientRef} ->
+                    case StatusCode of
+                        200 ->
+                           true;
+                        _ -> 
+                           false
+                    end
             end
-    end.
+    end,
+    application:set_env(dog,is_ec2_instance,IsEc2Istance), 
+    IsEc2Istance.
 
 -spec is_docker_instance() -> boolean().
 is_docker_instance() ->
   dog_docker:is_docker_instance().
+
+
+
+-spec ec2_info() -> {Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string()}.
+ec2_info() ->
+    case is_ec2_instance() of
+        true ->
+            {
+             ec2_public_ipv4(),
+             ec2_availability_zone(),
+             ec2_security_group_ids(),
+             ec2_owner_id()
+             };
+        false ->
+            {
+             <<"">>,
+             <<"">>,
+             <<"">>,
+             <<"">>
+            }
+    end.
 
 -spec ec2_public_ipv4() -> list() | {error, notfound}.
 ec2_public_ipv4() ->
@@ -317,12 +355,17 @@ get_fqdn() ->
     %If unable to get a unique hostname, use a random uuid
     Fqdn = case string:left(FullHostname,9) of
         "localhost" ->
-            quickrand:seed(),
-            uuid:get_v4_urandom();
+            case Hostname of
+                "localhost" ->
+                    quickrand:seed(),
+                    uuid:get_v4_urandom();
+                _ ->
+                    Hostname
+            end;
         _ ->
-            list_to_binary(FullHostname)
+            FullHostname
     end,
-    {ok, Fqdn}.
+    {ok, binary:list_to_bin(Fqdn)}.
 
 -spec fqdn() -> binary().
 fqdn() ->
