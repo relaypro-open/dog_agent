@@ -5,7 +5,7 @@
          config_service_spec/1,
 		 get_pid/1,
          init/1,
-         ipset_service_spec/0,
+         %ipset_service_spec/0,
          iptables_service_spec/4,
          start_link/0 
        ]).
@@ -36,22 +36,22 @@ ips_publisher_spec() ->
             #{ confirms => true, passive => false, rpc => false }),
 	AMQPPoolChildSpec.
 
-ipset_service_spec() ->
-    Config = #{
-      name => ipset_service,
-      connection => default,
-      function => fun dog_config_agent:loop/4,
-      handle_info => fun dog_config_agent:handle_info/2,
-      init_state => #{ },
-      declarations =>
-		  [
-		], 
-      subscriber_count => 1,
-      prefetch_count => 1,
-      passive => false
-    },
-    ServiceSpec = turtle_service:child_spec(Config),
-        ServiceSpec.
+%ipset_service_spec() ->
+%    Config = #{
+%      name => ipset_service,
+%      connection => default,
+%      function => fun dog_config_agent:loop/4,
+%      handle_info => fun dog_config_agent:handle_info/2,
+%      init_state => #{ },
+%      declarations =>
+%		  [
+%		], 
+%      subscriber_count => 1,
+%      prefetch_count => 1,
+%      passive => false
+%    },
+%    ServiceSpec = turtle_service:child_spec(Config),
+%        ServiceSpec.
 
 iptables_service_spec(Environment, Location, Group, Hostkey) ->
     QueueName = erlang:iolist_to_binary([<<"iptables.">>, Hostkey]),
@@ -83,7 +83,7 @@ config_service_spec(Hostkey) ->
     Config = #{
       name => config_service,
       connection => default,
-      function => fun dog_config:loop/4,
+      function => fun dog_config:subscriber_loop/4,
       handle_info => fun dog_config_agent:handle_info/2,
       init_state => #{ },
       declarations =>

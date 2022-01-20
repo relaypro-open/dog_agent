@@ -15,6 +15,23 @@
          write_config_file/4
         ]).
 
+
+-export([
+         restart_mq_services/4,
+         start_config_service/1,
+         stop_config_service/0
+        ]).
+
+restart_mq_services(Environment, Location, Group, Hostkey) ->
+    supervisor:terminate_child(dog_sup, config_agent),
+    %stop_config_service(),
+    start_config_service(Hostkey),
+    dog_iptables:stop_iptables_service(),
+    dog_iptables:start_iptables_service(Environment, Location, Group, Hostkey),
+    supervisor:terminate_child(dog_sup, ips_agent),
+    supervisor:restart_child(dog_sup, dog_ips_agent),
+    supervisor:restart_child(dog_sup, dog_config_agent).
+
 %% @doc watches for config from queue.
 -spec do_watch_config() -> atom().
 
@@ -23,10 +40,7 @@ do_watch_config() ->
     Location = location(),
     Group = group(),
     Hostkey = hostkey(),
-    stop_config_service(),
-    start_config_service(Hostkey),
-    dog_iptables:stop_iptables_service(),
-    dog_iptables:start_iptables_service(Environment, Location, Group, Hostkey).
+    restart_mq_services(Environment, Location, Group, Hostkey).
 
 start_config_service(Hostkey) ->
     turtle_service:new(dog_turtle_sup,dog_turtle_sup:config_service_spec(Hostkey)).
@@ -53,8 +67,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     write_config_file(Group, Location, Environment,
                       Hostkey),
     %Restarts ips_agent to have config change take effect, and immediate request of new iptables
-    supervisor:terminate_child(dog_sup, ips_agent),
-    supervisor:restart_child(dog_sup, ips_agent),
+    restart_mq_services(Environment, Location, Group, Hostkey),
     {ack,State}.
 
 -spec write_config_file(_, _, _, _) -> ok.

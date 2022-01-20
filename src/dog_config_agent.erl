@@ -31,7 +31,8 @@
          set_interfaces/1,
          set_location/1,
          set_state/1,
-         start_link/0
+         start_link/0,
+         watch_config/0
         ]).
 
 %% ------------------------------------------------------------------
@@ -128,6 +129,11 @@ group_routing_key() ->
     {ok, RoutingKey} = get_group_routing_key(),
     binary_to_list(RoutingKey).
 
+-spec watch_config() -> ok.
+
+watch_config() ->
+    gen_server:cast(?MODULE, watch_config).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -140,6 +146,7 @@ group_routing_key() ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init(_Args) ->
+    ok = dog_config_agent:watch_config(),
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
@@ -282,6 +289,8 @@ handle_call(group_routing_key, _From, State) ->
 %%----------------------------------------------------------------------
 -spec handle_cast(_, _) -> {noreply, _} |
                {stop, normal, _}.
+handle_cast(watch_config, State) ->
+    dog_config:do_watch_config(), {noreply, State};
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
     lager:error("unknown_message: Msg: ~p, State: ~p",
