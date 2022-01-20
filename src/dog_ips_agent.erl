@@ -152,7 +152,7 @@ handle_cast(watch_iptables, State) ->
     {ok, _} = dog_ips:do_watch_iptables(NewState),
     {noreply, NewState};
 handle_cast(watch_config, State) ->
-    ok = dog_config:do_watch_config(), {noreply, State};
+    dog_config:do_watch_config(), {noreply, State};
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
     lager:error("unknown_message: Msg: ~p, State: ~p",

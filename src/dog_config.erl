@@ -4,121 +4,37 @@
 
 -export([
          do_watch_config/0, 
-         ensure_config_updates/0, 
          environment/0,
-         get_config/0, group/0, 
+         get_config/0, 
+         group/0, 
          hostkey/0, 
          location/0,
          read_config_file/0, 
          routing_key/0,
-         subscribe_to_config_updates/0,
+         subscriber_loop/4,
          write_config_file/4
         ]).
-
--export([broker_config/0]).
-
--spec subscribe_to_config_updates() -> ok.
-
-subscribe_to_config_updates() ->
-    Hostkey = hostkey(),
-    %{ok, Hostname} = dog_interfaces:get_fqdn(),
-    ok = ensure_config_consumer(Hostkey).
-
--spec get_config_queue() -> map().
-
-get_config_queue() ->
-    %{ok, Hostname} = dog_interfaces:get_fqdn(),
-    Hostkey = hostkey(),
-    QueueName = "config." ++ binary_to_list(Hostkey),
-    Name = list_to_atom(QueueName),
-    #{broker => default, name => Name, queue => QueueName}.
-
--spec ensure_config_consumer(RoutingKey ::
-                             binary()) -> no_return().
-
-ensure_config_consumer(RoutingKey) ->
-    Queue = get_config_queue(),
-    ok = unsubscribe_to_config_updates(Queue),
-    create_config_queue(Queue),
-    ok = bind_config_updates(Queue, RoutingKey),
-    ok = subscribe_to_config_updates(Queue),
-    ok.
-
-ensure_config_updates() ->
-    Queue = get_config_queue(),
-    ok = subscribe_to_config_updates(Queue).
-
--spec unsubscribe_to_config_updates(Name ::
-                                    map()) -> ok.
-
-unsubscribe_to_config_updates(#{name := Name}) ->
-    dog_thumper_sup:ensure_consumer(down, Name), ok.
-
--spec create_config_queue(QueueDefinition ::
-                          map()) -> ok | no_channel.
-
-create_config_queue(#{broker := Broker, name := Name,
-                      queue := QueueName}) ->
-    Op = {'queue.declare',
-          [{queue, list_to_binary(QueueName)},
-           {auto_delete, true}, {durable, true}]},
-    case dog_thumper_sup:amqp_op(Broker, Name, [Op]) of
-        ok -> 
-            ok;
-        {ok, _} -> 
-            ok;
-        {error, Error} -> 
-            lager:error("Error: ~p", [Error]), 
-            Error
-    end.
 
 %% @doc watches for config from queue.
 -spec do_watch_config() -> atom().
 
 do_watch_config() ->
-    ok = subscribe_to_config_updates(), ok.
+    Environment = environment(),
+    Location = location(),
+    Group = group(),
+    Hostkey = hostkey(),
+    stop_config_service(),
+    start_config_service(Hostkey),
+    dog_iptables:stop_iptables_service(),
+    dog_iptables:start_iptables_service(Environment, Location, Group, Hostkey).
 
--spec subscribe_to_config_updates(QueueDefinition ::
-                                  map()) -> atom().
+start_config_service(Hostkey) ->
+    turtle_service:new(dog_turtle_sup,dog_turtle_sup:config_service_spec(Hostkey)).
 
-subscribe_to_config_updates(#{broker := Broker,
-                              name := Name, queue := QueueName}) ->
-    Pid = erlang:self(),
-    Callback = fun (A, B, C) ->
-                       config_subscriber_callback(A, B, C, Pid)
-               end,
-    case dog_thumper_sup:ensure_consumer(up, Name, Broker,
-                                         list_to_binary(QueueName), Callback)
-    of
-        {ok, _ChildPid} -> ok;
-        {error, {already_up, _ChildPid}} ->
-            lager:info("already_up"), ok
-    end.
+stop_config_service() ->
+    turtle_service:stop(dog_turtle_sup,config_service).
 
--spec bind_config_updates(QueueDefintion :: map(),
-                          RoutingKey :: binary()) -> atom().
-
-bind_config_updates(#{broker := Broker,
-                      name := ConsumerName, queue := QueueName},
-                    RoutingKey) ->
-    Op = {'queue.bind',
-          [{queue, list_to_binary(QueueName)},
-           {exchange, <<"config">>}, {routing_key, RoutingKey}]},
-    case dog_thumper_sup:amqp_op(Broker, ConsumerName, [Op])
-    of
-        ok -> ok;
-        {ok, Reason} -> lager:debug("Reason: ~p", [Reason]), ok;
-        {error, Error} -> lager:error("Error: ~p", [Error]), Error
-    end.
-
--spec config_subscriber_callback(_, _, binary(),
-                                 pid()) -> ack.
-
-config_subscriber_callback(DeliveryTag, RoutingKey,
-                           Payload, Pid) ->
-    lager:debug("Pid: ~p", [Pid]),
-    lager:debug("message: ~p, ~p, ~p",
-                [DeliveryTag, RoutingKey, binary_to_term(Payload)]),
+subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     lager:debug("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
     lager:debug("Proplist: ~p", [Proplist]),
@@ -130,14 +46,6 @@ config_subscriber_callback(DeliveryTag, RoutingKey,
     Location = maps:get(<<"location">>, Config),
     Environment = maps:get(<<"environment">>, Config),
     Hostkey = maps:get(<<"hostkey">>, Config),
-    Pid ! sub,
-    spawn(fun () ->
-                  handle_callback(Group, Location, Environment, Hostkey)
-          end),
-    ack.
-
-handle_callback(Group, Location, Environment,
-                Hostkey) ->
     dog_config_agent:set_group(Group),
     dog_config_agent:set_location(Location),
     dog_config_agent:set_environment(Environment),
@@ -146,7 +54,8 @@ handle_callback(Group, Location, Environment,
                       Hostkey),
     %Restarts ips_agent to have config change take effect, and immediate request of new iptables
     supervisor:terminate_child(dog_sup, ips_agent),
-    supervisor:restart_child(dog_sup, ips_agent).
+    supervisor:restart_child(dog_sup, ips_agent),
+    {ack,State}.
 
 -spec write_config_file(_, _, _, _) -> ok.
 
@@ -211,36 +120,3 @@ hostkey() ->
     ConfigMap = get_config(),
     Hostkey = maps:get(<<"hostkey">>, ConfigMap, <<"">>),
     Hostkey.
-
-broker_config() ->
-    BaseConfig =
-    [
-     {'queue.declare',
-      [{queue, <<"ips">>}, {auto_delete, false}, {durable, true}]},
-     {'queue.bind',
-      [{queue, <<"ips">>}, {exchange, <<"ips">>}, {routing_key, <<"#">>}]},
-     {'queue.declare',
-      [{queue, erlang:iolist_to_binary([<<"config.">>, hostkey()]) }, {auto_delete, true}, {durable, true}]},
-     {'queue.bind',
-      [{queue, erlang:iolist_to_binary([<<"config.">>, hostkey()]) }, {exchange, <<"config">>},
-       {routing_key, hostkey() }]},
-     {'queue.declare',
-      [{queue, erlang:iolist_to_binary([<<"iptables.">>, hostkey()]) }, {auto_delete, true}, {durable, true}]},
-     {'queue.bind',
-      [{queue, erlang:iolist_to_binary([<<"iptables.">>, hostkey()]) }, {exchange, <<"ipsets">>}, {routing_key, <<"fanout">>}]}
-    ],
-    %routing_key ignored bound to fanout exchange
-    ExtendedConfig =
-    [
-     {'queue.bind',
-      [{queue, erlang:iolist_to_binary([<<"iptables.">>, hostkey()]) }, {exchange, <<"iptables">>},
-       {routing_key, <<"{{ environment }}.{{ location }}.{{ " "group }}.*">>}]},
-     {'queue.bind',
-      [{queue, erlang:iolist_to_binary([<<"iptables.">>, hostkey()]) }, {exchange, <<"iptables">>},
-       {routing_key, <<"{{ environment }}.{{ location }}.*.{{ " "hostkey }}">>}]}
-    ],
-    {ok,
-     [
-      {tx, BaseConfig ++ ExtendedConfig
-      }
-     ]}.
