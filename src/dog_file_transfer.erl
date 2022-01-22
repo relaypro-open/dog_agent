@@ -28,24 +28,22 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 -export([
-         subscriber_callback/3
-        ]).
-
--export([
-         delete_file/2,
-         execute_file/2,
-         send_file/2
-        ]).
-
--export([
-         number_blocks/1
+         subscriber_loop/4,
+         start_file_transfer_service/4,
+         stop_file_transfer_service/0
         ]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
--spec subscriber_callback(DeliveryTag :: binary() , RoutingKey :: binary() ,Payload :: binary()) -> 'ack'. 
-subscriber_callback(_DeliveryTag, _RoutingKey, Payload) ->
+start_file_transfer_service(Environment, Location, Group, Hostkey) ->
+    turtle_service:new(dog_turtle_sup,
+                       dog_turtle_sup:file_transfer_service_spec(Environment, Location, Group, Hostkey)).
+
+stop_file_transfer_service() ->
+    turtle_service:stop(dog_turtle_sup,dog_file_transfer_service).
+
+subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
     Filename = proplists:get_value(file_name, Message),
     Command = proplists:get_value(command, Message),
@@ -70,135 +68,33 @@ subscriber_callback(_DeliveryTag, _RoutingKey, Payload) ->
             case FileCurrentBlock of
                 1 ->
                     file:pwrite(IoDevice,0,FileBlock),
-                    ack;
+                    {ack,State};
                 N when N >=  FileTotalBlocks ->
                     %file:write(IoDevice,FileBlock),
                     StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
                     io:format("StartByte: ~p~n",[StartByte]),
                     file:pwrite(IoDevice,StartByte,FileBlock),
                     file:close(IoDevice),
-                    ack;
+                    {ack,State};
                 _ ->
                     %file:write(IoDevice,FileBlock),
                     StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
                     io:format("StartByte: ~p~n",[StartByte]),
                     file:pwrite(IoDevice,StartByte,FileBlock),
-                    ack
+                    {ack,State}
             end;
         delete_file ->
             io:format("FilePath: ~p~n",[FilePath]),
             ok = file:delete(FilePath),
-            ack;
+            {ack,State};
         execute_file ->
             file:change_mode(FilePath, 8#00700),
             os:cmd(FilePath),
-            ack;
+            {ack,State};
         _ ->
             lager:error("Unknown command: ~p",[Command]),
-            nack
+            {nack,State}
     end.
-
-execute_file(FilePath,Destination) ->
-    publish_file_execute(Destination,FilePath).
-
--spec publish_file_execute(Destination :: string(), Filename :: string()) -> any().
-publish_file_execute(Destination, Filename) ->
-    %lager:info("IpsetExternalMap: ~p",[IpsetExternalMap]),
-    Pid = erlang:self(),
-    Message = term_to_binary([
-                              {command, execute_file},
-                              {file_name, Filename},
-                              {local_time, calendar:local_time()},
-                              {pid, Pid}
-                             ]),
-    RoutingKey = binary:list_to_bin(Destination),
-    Response = thumper:publish_to(default, Message, <<"file_transfer">>, RoutingKey),
-    Response.
-
-delete_file(FilePath,Destination) ->
-    publish_file_delete(Destination,FilePath).
-
--spec publish_file_delete(Destination :: string(), Filename :: string()) -> any().
-publish_file_delete(Destination, Filename) ->
-    %lager:info("IpsetExternalMap: ~p",[IpsetExternalMap]),
-    Pid = erlang:self(),
-    Message = term_to_binary([
-                              {command, delete_file},
-                              {file_name, Filename},
-                              {local_time, calendar:local_time()},
-                              {pid, Pid}
-                             ]),
-    RoutingKey = binary:list_to_bin(Destination),
-    Response = thumper:publish_to(default, Message, <<"file_transfer">>, RoutingKey),
-    Response.
-
--spec publish_file_send(Destination :: string(), Filename :: string(),Data :: binary(), TotalBlocks :: integer(), CurrentBlock :: integer()) -> any().
-publish_file_send(Destination, Filename, Data, TotalBlocks, CurrentBlock) ->
-    %lager:info("IpsetExternalMap: ~p",[IpsetExternalMap]),
-    UserData = #{
-      file_block => Data
-                },
-    Pid = erlang:self(),
-    Message = term_to_binary([
-                              {command, send_file},
-                              {file_name, Filename},
-                              {total_blocks, TotalBlocks},
-                              {current_block, CurrentBlock},
-                              {local_time, calendar:local_time()},
-                              {pid, Pid},
-                              {user_data, UserData}
-                             ]),
-    RoutingKey = binary:list_to_bin(Destination),
-    Response = thumper:publish_to(default, Message, <<"file_transfer">>, RoutingKey),
-    Response.
-
--spec send_file(Filename :: string(), Destination :: string()) -> ok | error.
-send_file(Filename, Destination) ->
-    lager:debug("Filename: ~p, Destination: ~p",[Filename,Destination]),
-    try 
-        {ok,IoDevice} = file:open(Filename, [read,binary,read_ahead,raw]),
-        send_data(IoDevice,Filename, Destination)
-    after 
-        file:close(Filename)
-    end.
-
-send_data(IoDevice,Filename, Destination) ->
-   TotalBlocks = number_blocks(Filename),
-   send_data(IoDevice,Filename, Destination, TotalBlocks, 0).
-
-send_data(IoDevice,Filename, Destination, TotalBlocks, CurrentBlock) ->
-   case file:read(IoDevice, ?BLOCK_SIZE) of
-       {ok, Data} ->
-           % Write Data to Socket
-           %send_data(Device, Socket)
-           NextBlock = CurrentBlock + 1,
-           publish_file_send(Destination,Filename,Data,TotalBlocks,NextBlock),
-           send_data(IoDevice, Filename, Destination,TotalBlocks,NextBlock);
-       eof -> ok
-   end.
-
-number_blocks(Filename) ->
-    FileSize = case file:read_file_info(Filename) of
-        {ok, FileInfo} ->
-            FullBlocks = erlang:floor(FileInfo#file_info.size / ?BLOCK_SIZE),
-            case FileInfo#file_info.size rem ?BLOCK_SIZE of
-               N when N > 0 ->
-                   FullBlocks + 1;
-               _ ->
-                   FullBlocks
-            end;
-        {error, _Reason} ->
-            0
-    end,
-    FileSize.
-
-%-define(HASH_BLOCK_SIZE,1024*1024*32).
-%file_hash(Filename) ->
-%    file_hash(Filename,Accum).
-%
-%file_hash(Filename,
-%file_hash(Filename) ->
-
 
 -spec start_link(Link :: map()) ->
   {ok, Pid :: pid()} | ignore | {error, {already_started, Pid :: pid()} | term()}.

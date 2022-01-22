@@ -28,6 +28,8 @@ restart_mq_services(Environment, Location, Group, Hostkey) ->
     start_config_service(Hostkey),
     dog_iptables:stop_iptables_service(),
     dog_iptables:start_iptables_service(Environment, Location, Group, Hostkey),
+    dog_file_transfer:stop_file_transfer_service(),
+    dog_file_transfer:start_file_transfer_service(Environment, Location, Group, Hostkey),
     supervisor:terminate_child(dog_sup, ips_agent),
     supervisor:restart_child(dog_sup, dog_ips_agent),
     supervisor:restart_child(dog_sup, dog_config_agent).

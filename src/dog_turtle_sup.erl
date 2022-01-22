@@ -5,8 +5,8 @@
          config_service_spec/1,
 		 get_pid/1,
          init/1,
-         %ipset_service_spec/0,
          iptables_service_spec/4,
+         file_transfer_service_spec/4,
          start_link/0 
        ]).
 
@@ -90,6 +90,31 @@ config_service_spec(Hostkey) ->
 		  [
           #'queue.declare' {queue = QueueName , auto_delete = true, durable = true},
           #'queue.bind' {queue = QueueName, exchange = <<"config">>, routing_key = Hostkey }
+		], 
+      subscriber_count => 1,
+      prefetch_count => 1,
+      consume_queue => QueueName,
+      passive => false
+    },
+
+    ServiceSpec = turtle_service:child_spec(Config),
+        ServiceSpec.
+
+file_transfer_service_spec(Environment, Location, Group, Hostkey) ->
+    GroupRoutingKey = erlang:iolist_to_binary([Environment,".",Location,".",Group,".*"]),
+    HostRoutingKey = erlang:iolist_to_binary([Environment,".",Location,".*.",Hostkey]),
+    QueueName = erlang:iolist_to_binary([<<"file_transfer.">>, Hostkey]),
+    Config = #{
+      name => file_transfer_service,
+      connection => default,
+      function => fun dog_file_transfer:subscriber_loop/4,
+      handle_info => fun dog_file_transfer:handle_info/2,
+      init_state => #{ },
+      declarations =>
+		  [
+            #'queue.declare' {queue = QueueName, auto_delete = true, durable = true},
+            #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = GroupRoutingKey},
+            #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = HostRoutingKey}
 		], 
       subscriber_count => 1,
       prefetch_count => 1,
