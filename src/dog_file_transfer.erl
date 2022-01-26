@@ -45,17 +45,18 @@ stop_file_transfer_service() ->
 
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
+    lager:debug("Message: ~p",[Message]),
     Filename = proplists:get_value(file_name, Message),
     Command = proplists:get_value(command, Message),
     UserData = proplists:get_value(user_data, Message),
     FilePath = "/tmp" ++ Filename,
-    io:format("Command: ~p~n",[Command]),
+    lager:debug("Command: ~p",[Command]),
     case Command of
         send_file ->
             FileTotalBlocks = proplists:get_value(total_blocks, Message),
             FileCurrentBlock = proplists:get_value(current_block, Message),
             FileBlock = maps:get(file_block, UserData),
-            io:format("Filename: ~p, Block ~p of ~p~n",[Filename,FileCurrentBlock,FileTotalBlocks]),
+            lager:debug("Filename: ~p, Block ~p of ~p",[Filename,FileCurrentBlock,FileTotalBlocks]),
             %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
             {ok,IoDevice} = case FileCurrentBlock of
                 1 ->
@@ -66,34 +67,51 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     file:open(FilePath,[write,read,raw])
             end,
             case FileCurrentBlock of
-                1 ->
+                1 when FileTotalBlocks =:= 1 ->
+                    file:pwrite(IoDevice,0,FileBlock),
+                    file:close(IoDevice),
+                    {ack,State};
+                    %{reply, <<"text/json">>, jsx:encode(block_ok), State};
+                1 when FileTotalBlocks > 1 ->
                     file:pwrite(IoDevice,0,FileBlock),
                     {ack,State};
                 N when N >=  FileTotalBlocks ->
                     %file:write(IoDevice,FileBlock),
                     StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
-                    io:format("StartByte: ~p~n",[StartByte]),
+                    lager:debug("StartByte: ~p",[StartByte]),
                     file:pwrite(IoDevice,StartByte,FileBlock),
                     file:close(IoDevice),
                     {ack,State};
+                    %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                 _ ->
                     %file:write(IoDevice,FileBlock),
                     StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
-                    io:format("StartByte: ~p~n",[StartByte]),
+                    lager:debug("StartByte: ~p",[StartByte]),
                     file:pwrite(IoDevice,StartByte,FileBlock),
                     {ack,State}
+                    %{reply, <<"text/json">>, jsx:encode(file_ok), State}
             end;
         delete_file ->
-            io:format("FilePath: ~p~n",[FilePath]),
-            ok = file:delete(FilePath),
-            {ack,State};
+            lager:debug("FilePath: ~p",[FilePath]),
+            Result = file:delete(FilePath),
+            lager:debug("Result: ~p",[Result]),
+            %{ack,State};
+            {reply, <<"text/json">>, jsx:encode(Result), State};
         execute_file ->
+            lager:debug("FilePath: ~p",[FilePath]),
             file:change_mode(FilePath, 8#00700),
-            os:cmd(FilePath),
-            {ack,State};
+            try
+                Result = os:cmd(FilePath, #{ max_size => 10000}),
+                lager:debug("Result: ~p",[Result]),
+            %{ack,State};
+                {reply, <<"text/json">>, jsx:encode(Result), State}
+            after
+                {reply, <<"text/json">>, jsx:encode(error), State}
+            end;
         _ ->
             lager:error("Unknown command: ~p",[Command]),
-            {nack,State}
+            {ack,State}
+            %{reply, <<"text/json">>, jsx:encode(error), State}
     end.
 
 -spec start_link(Link :: map()) ->
