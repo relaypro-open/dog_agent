@@ -6,7 +6,10 @@
   {applications,
    [kernel,
     stdlib,
-    elli
+    elli,
+    jsn,
+    jsx,
+    nested
    ]},
   {env,[]},
   {modules, []},
