@@ -23,6 +23,7 @@
         ip_to_queue/0,
         is_docker_instance/0,
         is_ec2_instance/0,
+        is_ec2_private_instance/0,
         is_softlayer_instance/0,
         publish_to_queue/1
         ]).
@@ -30,7 +31,9 @@
 -spec get_provider() -> binary().
 get_provider() ->
     case is_ec2_instance() of
-        true -> <<"ec2">>;
+        true -> 
+            is_ec2_private_instance(),
+            <<"ec2">>;
         false ->
             case is_softlayer_instance() of
                 true -> <<"softlayer">>;
@@ -93,10 +96,20 @@ is_ec2_instance() ->
     application:set_env(dog,is_ec2_instance,IsEc2Istance), 
     IsEc2Istance.
 
+-spec is_ec2_private_instance() -> boolean().
+is_ec2_private_instance() ->
+    IsEc2PrivateInstance = case application:get_env(dog,is_ec2_private_instance) of
+        {ok,Boolean} ->
+            Boolean;
+        _ ->
+            lists:all(fun(I) -> I == <<>> end, ec2_public_ipv4())
+        end,
+    application:set_env(dog,is_ec2_private_instance,IsEc2PrivateInstance), 
+    IsEc2PrivateInstance.
+
 -spec is_docker_instance() -> boolean().
 is_docker_instance() ->
   dog_docker:is_docker_instance().
-
 
 
 -spec ec2_info() -> {Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string()}.
@@ -104,7 +117,7 @@ ec2_info() ->
     case is_ec2_instance() of
         true ->
             {
-             ec2_public_ipv4(),
+             ec2_instance_id(),
              ec2_availability_zone(),
              ec2_security_group_ids(),
              ec2_owner_id()
@@ -120,19 +133,24 @@ ec2_info() ->
 
 -spec ec2_public_ipv4() -> list() | {error, notfound}.
 ec2_public_ipv4() ->
-    case ec2_macs() of
-        {error, _} ->
-            {error, notfound};
-        Macs ->
-            Results = lists:map(fun(Mac) -> 
-                ec2_public_ipv4(Mac)
-            end, Macs),
-            case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
-                true ->
-                    {error, notfound};
-                false ->
-                    lists:flatten(Results)
-            end
+    case application:get_env(dog,is_ec2_private_instance) of
+        {ok,false} ->
+            case ec2_macs() of
+                {error, _} ->
+                    [<<"">>];
+                Macs ->
+                    Results = lists:map(fun(Mac) -> 
+                                                ec2_public_ipv4(Mac)
+                                        end, Macs),
+                    case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+                        true ->
+                            {error, notfound};
+                        false ->
+                            lists:flatten(Results)
+                    end
+            end;
+        _ ->
+            [<<"">>]
     end.
 
 -spec ec2_availability_zone() -> string().
@@ -261,7 +279,7 @@ ec2_owner_id(Mac) ->
             end
     end.
 
--spec ec2_public_ipv4(Mac :: string()) -> list() | {error, notfound}.
+-spec ec2_public_ipv4(Mac :: string()) -> list() | [].
 ec2_public_ipv4(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/public-ipv4s",
     Method = get,
@@ -271,7 +289,7 @@ ec2_public_ipv4(Mac) ->
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
             lager:error("Error getting ec2_public_ipv4"),
-            {error, notfound};
+            <<"">>;
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
@@ -281,7 +299,7 @@ ec2_public_ipv4(Mac) ->
                     IPStrings;
                 _ ->
                     lager:error("Error getting ec2_public_ipv4"),
-                    {error,notfound}
+                    <<"">>
             end
     end.
 
@@ -321,17 +339,22 @@ get_interfaces(Provider, OldInterfaces) ->
     case Provider of
         <<"ec2">> ->
             {ok, LocalInterfaces} = get_local_interfaces(),
-            case ec2_public_ipv4() of
-                {error, notfound} ->
-                    lager:error("Using cached ec2_public_ipv4"),
-                    OldPublicIpv4 = proplists:get_value(<<"ec2_public_ipv4">>,OldInterfaces,[]),
-                    Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,OldPublicIpv4}]),
-                    {ok, Both};
-                Ec2PublicIpv4 ->
-                    Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,Ec2PublicIpv4}]),
-                    lager:info("Both: ~p",[Both]),
-                    {ok, Both}
-           end;
+            case is_ec2_private_instance() of
+                true ->
+                    {ok,LocalInterfaces};
+                false ->
+                    case ec2_public_ipv4() of
+                        {error, notfound} ->
+                            lager:error("Using cached ec2_public_ipv4"),
+                            OldPublicIpv4 = proplists:get_value(<<"ec2_public_ipv4">>,OldInterfaces,[]),
+                            Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,OldPublicIpv4}]),
+                            {ok, Both};
+                        Ec2PublicIpv4 ->
+                            Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,Ec2PublicIpv4}]),
+                            lager:info("Both: ~p",[Both]),
+                            {ok, Both}
+                   end
+            end;
         _ ->
             get_local_interfaces()
     end.

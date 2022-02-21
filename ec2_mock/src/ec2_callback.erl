@@ -1,131 +1,99 @@
 -module(ec2_callback).
 
--export([handle/2, handle_event/3]).
+-export([
+         handle/2, 
+         handle_event/3,
+         lookup/2,
+         metadata/0,
+         serve_metadata/1
+        ]).
 
 -include_lib("elli/include/elli.hrl").
 
 -behaviour(elli_handler).
 
+metadata() ->
+    {ok, File} = file:read_file("priv/metadata.json"),
+    jsx:decode(File).
+
 handle(Req, _Args) ->
     %% Delegate to our handler function
     handle(Req#req.method, elli_request:path(Req), Req).
 
-handle('GET', [<<"latest">>, <<"meta-data">>], _Req) ->
-    %% Reply with a normal response. `ok' can be used instead of `200'
-    %% to signal success.
-    %%
-    Response =
-    <<"ami-id\nami-launch-index\nami-manifest-path\n"
-      "block-device-mapping/\nevents/\nhostname\nide"
-      "ntity-credentials/\ninstance-action\ninstance"
-      "-id\ninstance-type\nkernel-id\nlocal-hostname\n"
-      "local-ipv4\nmac\nmetrics/\nnetwork/\nplacemen"
-      "t/\nprofile\npublic-hostname\npublic-ipv4\npu"
-      "blic-keys/\nreservation-id\nsecurity-groups\n"
-      "services/">>,
-    {ok, [], Response};
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>],
-       _Req) ->
+
+handle('GET', RequestList, _Req) ->
     case rand:uniform() of
-        %Rand when Rand > 5.0e-1 ->
-        Rand when Rand > 0 ->
-            Response = <<"22:00:0a:b9:31:e1/\n00:11:22:33:44:55/">>,
-            {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"22:00:0a:b9:31:e1">>,
-        <<"public-ipv4s">>],
-       _Req) ->
-    case rand:uniform() of
-        %Rand when Rand > 5.0e-1 ->
-        Rand when Rand > 0 ->
-            Response = <<"54.235.213.32">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"00:11:22:33:44:55">>,
-        <<"public-ipv4s">>],
-       _Req) ->
-    case rand:uniform() of
-        %Rand when Rand > 5.0e-1 ->
-        Rand when Rand > 0 ->
-            Response = <<"11.22.33.44">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"instance-id">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"i-05664d6383520bc3e">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"22:00:0a:b9:31:e1">>,
-        <<"security-group-ids">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"sg-0a0a227b1e901d4c2">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"00:11:22:33:44:55">>,
-        <<"security-group-ids">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"sg-0a0a227b1e901d4c2">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"00:11:22:33:44:55">>,
-        <<"owner-id">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"338433425587">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"network">>,
-        <<"interfaces">>, <<"macs">>, <<"22:00:0a:b9:31:e1">>,
-        <<"owner-id">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"338433425587">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"security-groups">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"dog-test">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET',
-       [<<"latest">>, <<"meta-data">>, <<"placement">>,<<"availability-zone">>],
-       _Req) ->
-    case rand:uniform() of
-        Rand when Rand > 0 ->
-            Response = <<"us-east-2a">>, {ok, [], Response};
-        _ -> {503, [], <<"Not Found">>}
-    end;
-handle('GET', [<<"hello">>, <<"world">>], _Req) ->
-    %% Reply with a normal response. `ok' can be used instead of `200'
-    %% to signal success.
-    {ok, [], <<"Hello World!">>};
-handle(_, _, _Req) -> {404, [], <<"Not Found">>}.
+        Rand when Rand > 0 -> % set to > N to simulate random 404s
+            try serve_metadata(RequestList) of
+                Response ->  Response
+            catch
+                _:_ -> {404, [], error404()}
+            end;
+        _ -> {404, [], error404()}
+    end.
+
+lookup([],Value) ->
+    Value;
+lookup([Head | Tail],Map) ->
+    case maps:get(Head,Map,not_found) of
+        not_found ->
+            Key = list_to_binary(io_lib:format("~s/",[Head])),
+            %io:format("Key: ~p~n",[Key]),
+            case maps:get(Key,Map,not_found) of
+                not_found ->
+                    not_found;
+                Value ->
+                    case is_map(Value) of
+                        true ->
+                            lookup(Tail,Value);
+                        false ->
+                            not_found
+                    end
+            end;
+        Value ->
+            lookup(Tail,Value)
+    end.
+
+
+serve_metadata(RequestList) ->
+    Keys = lists:delete(<<"latest">>,RequestList),
+    Lookup = lookup(Keys,metadata()),
+    case Lookup of
+        not_found ->
+            {404, [], error404()};
+        Value ->
+            case erlang:is_map(Value) of
+                true ->
+                    FormatedList = lists:map(fun({K,V}) -> 
+                                                     case is_map(V) of
+                                                         true ->
+                                                             io_lib:format("~s~n",[K]);
+                                                         false ->
+                                                             io_lib:format("~s~n",[K])
+                                                     end
+                                             end, maps:to_list(Value)),
+                    LastEntry = lists:last(FormatedList),
+                    LastEntryWithoutNewline = lists:reverse(lists:nthtail(1,lists:reverse(LastEntry))),
+                    FormatedListWithoutLastEntry = lists:reverse(lists:nthtail(1,lists:reverse(FormatedList))),
+                    FormatedListWithoutLastNewline = FormatedListWithoutLastEntry ++ LastEntryWithoutNewline,
+                    {ok, [], lists:flatten(FormatedListWithoutLastNewline) };
+                false ->
+                    {ok, [], Value}
+            end
+    end.
+    
+
+error404() ->
+    <<"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"
+        \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">
+    <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">
+     <head>
+      <title>404 - Not Found</title>
+     </head>
+     <body>
+      <h1>404 - Not Found</h1>
+     </body
+    </html>">>.
 
 %% @doc Handle request events, like request completed, exception
 %% thrown, client timeout, etc. Must return `ok'.
