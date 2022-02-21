@@ -3,7 +3,9 @@
 -export([
          handle/2, 
          handle_event/3,
-         metadata/0
+         lookup/2,
+         metadata/0,
+         serve_metadata/1
         ]).
 
 -include_lib("elli/include/elli.hrl").
@@ -30,27 +32,51 @@ handle('GET', RequestList, _Req) ->
         _ -> {404, [], error404()}
     end.
 
+lookup([],Value) ->
+    Value;
+lookup([Head | Tail],Map) ->
+    case maps:get(Head,Map,not_found) of
+        not_found ->
+            Key = list_to_binary(io_lib:format("~s/",[Head])),
+            %io:format("Key: ~p~n",[Key]),
+            case maps:get(Key,Map,not_found) of
+                not_found ->
+                    not_found;
+                Value ->
+                    case is_map(Value) of
+                        true ->
+                            lookup(Tail,Value);
+                        false ->
+                            not_found
+                    end
+            end;
+        Value ->
+            lookup(Tail,Value)
+    end.
+
+
 serve_metadata(RequestList) ->
-    Key = lists:delete(<<"latest">>,RequestList),
-    case nested:get(Key,metadata(),not_found) of
+    Keys = lists:delete(<<"latest">>,RequestList),
+    Lookup = lookup(Keys,metadata()),
+    case Lookup of
         not_found ->
             {404, [], error404()};
         Value ->
             case erlang:is_map(Value) of
                 true ->
-                     FormatedList = lists:map(fun({K,V}) -> 
-                                           case is_map(V) of
-                                               true ->
-                                                   io_lib:format("~s/~n",[K]);
-                                               false ->
-                                                   io_lib:format("~s~n",[K])
-                                           end
-                                           end, maps:to_list(Value)),
-                     LastEntry = lists:last(FormatedList),
-                     LastEntryWithoutNewline = lists:reverse(lists:nthtail(1,lists:reverse(LastEntry))),
-                     FormatedListWithoutLastEntry = lists:reverse(lists:nthtail(1,lists:reverse(FormatedList))),
-                     FormatedListWithoutLastNewline = FormatedListWithoutLastEntry ++ LastEntryWithoutNewline,
-                    {ok, [], FormatedListWithoutLastNewline };
+                    FormatedList = lists:map(fun({K,V}) -> 
+                                                     case is_map(V) of
+                                                         true ->
+                                                             io_lib:format("~s~n",[K]);
+                                                         false ->
+                                                             io_lib:format("~s~n",[K])
+                                                     end
+                                             end, maps:to_list(Value)),
+                    LastEntry = lists:last(FormatedList),
+                    LastEntryWithoutNewline = lists:reverse(lists:nthtail(1,lists:reverse(LastEntry))),
+                    FormatedListWithoutLastEntry = lists:reverse(lists:nthtail(1,lists:reverse(FormatedList))),
+                    FormatedListWithoutLastNewline = FormatedListWithoutLastEntry ++ LastEntryWithoutNewline,
+                    {ok, [], lists:flatten(FormatedListWithoutLastNewline) };
                 false ->
                     {ok, [], Value}
             end
