@@ -98,14 +98,22 @@ is_ec2_instance() ->
 
 -spec is_ec2_private_instance() -> boolean().
 is_ec2_private_instance() ->
-    IsEc2PrivateInstance = case application:get_env(dog,is_ec2_private_instance) of
+    case application:get_env(dog,is_ec2_private_instance) of
         {ok,Boolean} ->
             Boolean;
         _ ->
-            lists:all(fun(I) -> I == <<>> end, ec2_public_ipv4())
-        end,
-    application:set_env(dog,is_ec2_private_instance,IsEc2PrivateInstance), 
-    IsEc2PrivateInstance.
+            case ec2_public_ipv4() of
+                {error, notfound} ->
+                    application:set_env(dog,is_ec2_private_instance,true),
+                    true;
+                {error, _} ->
+                    % inconclusive, do not set env var
+                    false;
+                _Addresses ->
+                    application:set_env(dog,is_ec2_private_instance,false),
+                    false
+            end
+    end.
 
 -spec is_docker_instance() -> boolean().
 is_docker_instance() ->
@@ -131,26 +139,38 @@ ec2_info() ->
             }
     end.
 
--spec ec2_public_ipv4() -> list() | {error, notfound}.
+-spec ec2_public_ipv4() -> list() | {error, atom()}.
 ec2_public_ipv4() ->
     case application:get_env(dog,is_ec2_private_instance) of
-        {ok,false} ->
-            case ec2_macs() of
-                {error, _} ->
-                    [<<"">>];
-                Macs ->
-                    Results = lists:map(fun(Mac) -> 
-                                                ec2_public_ipv4(Mac)
-                                        end, Macs),
-                    case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
-                        true ->
-                            {error, notfound};
-                        false ->
-                            lists:flatten(Results)
-                    end
-            end;
+        {ok, true} ->
+            {error, notfound};
         _ ->
-            [<<"">>]
+            case ec2_macs() of
+                {error, Reason} ->
+                    {error, Reason};
+                Macs ->
+                    Results = lists:flatten([ ec2_public_ipv4(Mac) || Mac <- Macs ]),
+                    AnyNotFound = lists:any(fun({error, notfound}) -> true; (_) -> false end, Results),
+                    AnyFailures = lists:any(fun({error, Reason}) when Reason =/= notfound -> true; (_) -> false end, Results) ,
+                    Addresses = lists:filter(fun(X) when is_binary(X) -> true; (_) -> false end, Results),
+
+                    %% If we got at least 1 real public IP, return it
+                    if length(Addresses) > 0 ->
+                           lists:flatten(Addresses);
+
+                    %% Else if we got any request failures (anything not a 404), signal that the request failed
+                       AnyFailures ->
+                           {error, request_failed};
+
+                    %% Else if we got no real addresses, and no failures, then we assume this instance has no public IP
+                       AnyNotFound ->
+                           {error, notfound};
+
+                    %% Else.. This clause isn't logically possible, but provided for safety (TODO - dialyzer)
+                       true ->
+                           {error, unknown}
+                    end
+            end
     end.
 
 -spec ec2_availability_zone() -> string().
@@ -279,7 +299,7 @@ ec2_owner_id(Mac) ->
             end
     end.
 
--spec ec2_public_ipv4(Mac :: string()) -> list() | [].
+-spec ec2_public_ipv4(Mac :: string()) -> list() | {error, atom() | integer()}.
 ec2_public_ipv4(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/public-ipv4s",
     Method = get,
@@ -287,19 +307,21 @@ ec2_public_ipv4(Mac) ->
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
-        {error, _Error} ->
-            lager:error("Error getting ec2_public_ipv4"),
-            <<"">>;
+        {error, Error} ->
+            lager:error("Error getting ec2_public_ipv4: ~p", [Error]),
+            {error, failed};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
                     {ok,Body} = hackney:body(ClientRef),
-                    Ips = re:split(Body, "\n", [{return, list}]),
-                    IPStrings = [list_to_binary(Ip) || Ip <- Ips],
-                    IPStrings;
+                    %Ips = string:split(Body,"\n"),
+                    lists:flatten(re:split(Body, "\n", [{return, binary}]));
+                404 ->
+                    lager:warning("Failed to get ec2_public_ipv4: ~p. This mac was not assigned a public-ipv4", [StatusCode]),
+                    {error, notfound};
                 _ ->
-                    lager:error("Error getting ec2_public_ipv4"),
-                    <<"">>
+                    lager:error("Error getting ec2_public_ipv4: ~p", [StatusCode]),
+                    {error, StatusCode}
             end
     end.
 
@@ -344,7 +366,7 @@ get_interfaces(Provider, OldInterfaces) ->
                     {ok,LocalInterfaces};
                 false ->
                     case ec2_public_ipv4() of
-                        {error, notfound} ->
+                        {error, _} ->
                             lager:error("Using cached ec2_public_ipv4"),
                             OldPublicIpv4 = proplists:get_value(<<"ec2_public_ipv4">>,OldInterfaces,[]),
                             Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,OldPublicIpv4}]),
