@@ -77,24 +77,26 @@ do_watch_interfaces(StateOld) ->
     IpsetHash = dog_ipset:read_hash(),
     {ok, Version} = dog_app:get_version(),
     UpdateType = update,
-    StateNew = dog_state:from_map(#{<<"name">> => Hostname,
-                    <<"interfaces">> => InterfacesNew,
-                    <<"group">> => Group,
-                    <<"location">> => Location,
+    StateNew = dog_state:from_map(
+                 #{
+                    <<"ec2_availability_zone">> => Ec2AvailabilityZone,
+                    <<"ec2_instance_id">> => Ec2InstanceId,
+                    <<"ec2_owner_id">> => Ec2OwnerId,
+                    <<"ec2_security_group_ids">> => Ec2SecurityGroupIds,
                     <<"environment">> => Environment,
-                    <<"hostkey">> => HostKey,
-                    <<"version">> => Version,
+                    <<"group">> => Group,
                     <<"hash4_ipsets">> => Hash4Ipsets,
-                    <<"hash6_ipsets">> => Hash6Ipsets,
                     <<"hash4_iptables">> => Hash4Iptables,
+                    <<"hash6_ipsets">> => Hash6Ipsets,
                     <<"hash6_iptables">> => Hash6Iptables,
+                    <<"hostkey">> => HostKey,
+                    <<"interfaces">> => InterfacesNew,
+                    <<"ipset_hash">> => IpsetHash,
+                    <<"location">> => Location,
+                    <<"name">> => Hostname,
                     <<"provider">> => Provider,
                     <<"updatetype">> => UpdateType,
-                    <<"ipset_hash">> => IpsetHash,
-                    <<"ec2_instance_id">> => Ec2InstanceId,
-                    <<"ec2_availability_zone">> => Ec2AvailabilityZone,
-                    <<"ec2_security_group_ids">> => Ec2SecurityGroupIds,
-                    <<"ec2_owner_id">> => Ec2OwnerId
+                    <<"version">> => Version
                                    }),
     case InterfacesOld == InterfacesNew of
       false ->
@@ -103,8 +105,8 @@ do_watch_interfaces(StateOld) ->
       lager:debug("Hostname, Interfaces: ~p, ~p",
               [Hostname, InterfacesNew]),
       lager:debug("StateNew: ~p", [StateNew]),
-      StateMap = dog_state:to_map(StateNew),
-      dog_interfaces:publish_to_queue(StateMap);
+      StateMap = dog_state:to_map(StateNew);
+      %dog_interfaces:publish_to_queue(StateMap);
       true -> ok
     end,
     {ok, StateNew}.
