@@ -29,7 +29,8 @@ dog_envconfig() ->
 dog_envconfig(destroy) ->
     application:unset_env(dog, environment),
     application:unset_env(dog, location),
-    application:unset_env(dog, hostkey).
+    application:unset_env(dog, hostkey),
+    application:unset_env(dog, group).
 
 dog_app() ->
     _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
@@ -41,6 +42,9 @@ dog_app() ->
     meck:reset(dog_os),
     Apps.
 
+dog_app(destroy) ->
+     [ application:stop(X) || X <- lists:reverse(dog_app()) ].
+
 dog_ec2_app() ->
     _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
          file_read_config_map(), inet_ifs(),          dog_thumper_allow(),
@@ -51,8 +55,8 @@ dog_ec2_app() ->
     meck:reset(dog_os),
     Apps.
 
-dog_app(destroy) ->
-     [ application:stop(X) || X <- lists:reverse(dog_app()) ].
+dog_ec2_app(destroy) ->
+     [ application:stop(X) || X <- lists:reverse(dog_ec2_app()) ].
 
 lager_none() ->
     application:load(lager),
@@ -77,6 +81,13 @@ thumper_noconnect() ->
 thumper_noconnect(destroy) ->
     application:unset_env(thumper, thumper_svrs),
     application:unload(thumper).
+
+dog_ips_agent_create_ipsets() ->
+    meck:new(dog_ips_agent, [passthrough]),
+    meck:expect(dog_ips_agent, create_ipsets, fun(X) -> dog_ipset:create_ipsets(X) end).
+
+dog_ips_agent_create_ipsets(destroy) ->
+    meck:unload(dog_ips_agent).
 
 %% MOCKS
 dog_thumper_allow() ->
