@@ -124,7 +124,7 @@ get_file_history() ->
     History.
 
 setup() ->
-    dog_fixture:setup([dog_os, dog_thumper_allow, thumper_publish, file_write_nothing, timer_nosleep, hackney_ec2]).
+    dog_fixture:setup([dog_os, dog_thumper_allow, thumper_publish, file_write_nothing, timer_nosleep, hackney_ec2, lager_app, dog_ips_agent_create_ipsets]).
 
 teardown(Context) ->
     dog_fixture:teardown(Context).
