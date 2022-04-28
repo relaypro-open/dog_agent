@@ -9,7 +9,7 @@
 -define(LOCAL_CONFIG_FILE, "/etc/dog/local_config.json").
 
 -define(SERVER, ?MODULE).
--define(CMD(S), os:cmd(S)).
+-define(CMD(S), dog_os:cmd(S)).
 
 -define(PID_FILE, "/var/run/dog/dog.pid").
 

@@ -49,7 +49,7 @@ restore_ipset(ErrorCount) ->
   IpsetRestoreWaitSeconds = application:get_env(dog, ipset_restore_wait_seconds, 3),
   RestoreCmd = "cat " ++ ?RUNDIR ++ "/ipset.txt | /home/dog/bin/ipset restore -exist", % no '-f' in old ipset on centos 6
   lager:debug("RestoreCmd: ~p", [RestoreCmd]),
-  Result = os:cmd(RestoreCmd),
+  Result = dog_os:cmd(RestoreCmd),
   timer:sleep(IpsetRestoreWaitSeconds * 1000),
   case Result of       % Run a shell command to sleep for 1000s.
     %dog_ipset:restore_ipset:38 gen_server dog_ipset_agent terminated with reason: no case clause matching {error,[{exit_status,256},{stderr,[<<"ipset v6.29: Error in line 4396: Kernel error received: Device or resource busy n">>]}]} 
@@ -77,7 +77,7 @@ persist_ipset() ->
     "/home/dog/bin/ipset save | tee /etc/iptable"
     "s/rules.ipset",
     lager:debug("PersistCmd: ~p", [PersistCmd]),
-    os:cmd(PersistCmd),
+    dog_os:cmd(PersistCmd),
     ok.
 
 -spec read_current_ipset() -> list() |
@@ -86,7 +86,7 @@ persist_ipset() ->
 read_current_ipset() ->
     ReadCmd = "/home/dog/bin/ipset save",
     lager:debug("ReadCmd: ~p", [ReadCmd]),
-    case os:cmd(ReadCmd) of
+    case dog_os:cmd(ReadCmd) of
         [] ->
             [];
         ReadCmdResult ->
@@ -132,11 +132,11 @@ normalize_ipset(Ipset) ->
 -spec cleanup_ipset() -> ok.
 cleanup_ipset() ->
     lager:info("cleanup_ipset()"),
-    _One = os:cmd("grep create /etc/dog/ipset.txt | awk '{print $2}' | sort | uniq > /etc/dog/1.tmp"),
-    _Two = os:cmd("/home/dog/bin/ipset list -name | sort | uniq > /etc/dog/2.tmp"),
+    _One = dog_os:cmd("grep create /etc/dog/ipset.txt | awk '{print $2}' | sort | uniq > /etc/dog/1.tmp"),
+    _Two = dog_os:cmd("/home/dog/bin/ipset list -name | sort | uniq > /etc/dog/2.tmp"),
     Cmd = "for name in `comm -1 -3 /etc/dog/1.tmp /etc/dog/2.tmp`;do echo destroy $name;done > /etc/dog/ipset_cleanup.txt; cat /etc/dog/ipset_cleanup.txt | /home/dog/bin/ipset restore; rm /etc/dog/1.tmp /etc/dog/2.tmp",
     lager:debug("Cmd: ~p", [Cmd]),
-    case os:cmd(Cmd) of
+    case dog_os:cmd(Cmd) of
       [] ->
             ok;
       CmdError ->

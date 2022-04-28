@@ -10,7 +10,6 @@
         ]).
 
 -export([
-         dog_state/0, 
          dog_state/18,
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
@@ -86,10 +85,6 @@
      ipset_hash,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id}).
 
 -type dog_state() :: #dog_state{}.
-
--spec dog_state() -> dog_state().
-
-dog_state() -> dog_state().
 
 dog_state(Group, Hostname, Location, Environment,
       Hostkey, Interfaces, Version, Hash4Ipsets, Hash6Ipsets,
