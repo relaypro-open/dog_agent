@@ -70,10 +70,10 @@ read_hash() ->
   try 
     gen_server:call(?MODULE, read_hash, 20000)
   catch 
-    Class:Reason -> 
+    Class:Reason:Stacktrace -> 
       lager:error(
               "~nStacktrace:~s",
-              [lager:pr_stacktrace(erlang:get_stacktrace(), {Class, Reason})]),
+              [lager:pr_stacktrace(Stacktrace, {Class, Reason})]),
       {Class, Reason} 
   end.
 
@@ -83,10 +83,10 @@ create_ipsets(Ipsets) ->
   try 
     gen_server:call(?MODULE, {create_ipsets,Ipsets}, 20000)
   catch 
-    Class:Reason -> 
+    Class:Reason:Stacktrace -> 
       lager:error(
               "~nStacktrace:~s",
-              [lager:pr_stacktrace(erlang:get_stacktrace(), {Class, Reason})]),
+              [lager:pr_stacktrace(Stacktrace, {Class, Reason})]),
       {Class, Reason} 
   end.
 
@@ -146,7 +146,7 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(_, _) -> {noreply, _} |
                {stop, normal, _}.
 
-handle_cast(watch_iptables, State) ->
+handle_cast(watch_iptables, _State) ->
     %{ok, NewState} = dog_ips:do_watch_iptables(State),
     NewState = dog_config_agent:get_state(),
     {ok, _} = dog_ips:do_watch_iptables(NewState),

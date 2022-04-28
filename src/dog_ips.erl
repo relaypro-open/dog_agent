@@ -34,7 +34,6 @@ do_get_host_routing_key(State) ->
 
 do_watch_iptables(State) ->
     lager:debug("do_watch_iptables"),
-    dog_test:setup(),
     {ok, GroupRoutingKey} = do_get_group_routing_key(State),
     lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
     ok =

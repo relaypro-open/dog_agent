@@ -115,7 +115,7 @@ get_host_routing_key() ->
 
 -spec host_routing_key() -> string().
 host_routing_key() ->
-    {ok, RoutingKey} = get_host_routing_key(),
+    RoutingKey = get_host_routing_key(),
     binary_to_list(RoutingKey).
 
 -spec get_group_routing_key() -> {ok,
@@ -125,7 +125,7 @@ get_group_routing_key() ->
 
 -spec group_routing_key() -> string().
 group_routing_key() ->
-    {ok, RoutingKey} = get_group_routing_key(),
+    RoutingKey = get_group_routing_key(),
     binary_to_list(RoutingKey).
 
 %% ------------------------------------------------------------------

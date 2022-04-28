@@ -6,7 +6,6 @@
          create_hash/1,
          ensure_iptables_consumer/1,
          normalize_ruleset/1,
-         publish_to_queue/2,
          read_current_ipv4_ipsets/0,
          read_current_ipv4_iptables/0,
          read_current_ipv6_ipsets/0,
@@ -129,7 +128,7 @@ persist_ipv4_tables() ->
         true ->
           ?IP4TABLES_SAVE_COMMAND ++ " > /etc/iptables/rules.v4"
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     case Result of
       [] -> ok;
       _ ->
@@ -163,9 +162,9 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           DockerFilterFile = (?RUNDIR) ++ "/iptables-docker-filter.txt",
           DockerIptablesFile = (?RUNDIR) ++ "/iptables-docker.txt",
           ConcatCmd = "cat " ++ DockerTrainerFilterFile ++ " " ++ DockerFilterFile ++ " " ++ DockerNatFile ++ " > " ++ DockerIptablesFile,
-          os:cmd(ConcatCmd),
+          dog_os:cmd(ConcatCmd),
           Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile, 
-          Result = os:cmd(Cmd),
+          Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
               lager:info("applied ipv4 ruleset"),
@@ -178,7 +177,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           RemoveNatFile = "/etc/dog/rm-nat.txt",
           file:write_file(RemoveNatFile,rm_nat()),
           Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND, 
-          Result = os:cmd(Cmd),
+          Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
               lager:info("applied ipv4 ruleset"),
@@ -200,7 +199,7 @@ persist_ipv6_tables() ->
         true ->
         ?IP6TABLES_SAVE_COMMAND ++ " > /etc/iptables/rules.v6"
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     case Result of
       [] -> ok;
       _ -> error
@@ -214,7 +213,7 @@ apply_ipv6_ruleset(TempFile) ->
       false -> ok;
       true ->
       Cmd = ?IP6TABLES_RESTORE_COMMAND ++ " " ++ TempFile,
-      Result = os:cmd(Cmd),
+      Result = dog_os:cmd(Cmd),
       case Result of
         [] -> lager:info("applied ipv6 ruleset"), ok;
         _ ->
@@ -240,7 +239,7 @@ read_current_ipv4_iptables() ->
             "cat " ++ (?RUNDIR) ++ "/ip4tables_iptables.txt"
         end
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     lists:flatten(Result).
 
 -spec read_current_ipv6_iptables() -> string().
@@ -259,7 +258,7 @@ read_current_ipv6_iptables() ->
             "cat " ++ (?RUNDIR) ++ "/ip6tables_iptables.txt"
         end
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     Result.
 
 -spec read_current_ipv4_ipsets() -> string().
@@ -277,7 +276,7 @@ read_current_ipv4_ipsets() ->
             ?IP4TABLES_SAVE_COMMAND
         end
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     lists:flatten(Result).
 
 -spec read_current_ipv6_ipsets() -> string().
@@ -294,14 +293,14 @@ read_current_ipv6_ipsets() ->
             ?IP6TABLES_SAVE_COMMAND
         end
       end,
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     Result.
 
 -spec backup_current_ipv4_iptables() -> error | ok.
 
 backup_current_ipv4_iptables() ->
     Cmd = ?IP4TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/iptables.back",
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     lager:debug("backup_ipv4_iptables Result: ~p",
         [Result]),
     case Result of
@@ -313,7 +312,7 @@ backup_current_ipv4_iptables() ->
 
 backup_current_ipv6_iptables() ->
     Cmd = ?IP6TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/ip6tables.back",
-    Result = os:cmd(Cmd),
+    Result = dog_os:cmd(Cmd),
     lager:debug("backup_ipv6_iptables Result: ~p",
         [Result]),
     case Result of
@@ -577,25 +576,6 @@ bind_iptables_updates(#{broker := Broker,
       {ok, Reason} -> lager:debug("Reason: ~p", [Reason]), ok;
       Error -> lager:error("Error: ~p", [Error]), Error
     end.
-
--spec publish_to_queue(_, _) -> any().
-
-publish_to_queue(Hostname, Ruleset) ->
-    UserData = [{name, Hostname}, {ruleset, Ruleset}],
-    Count = 1,
-    %RoutingKey = <<"ENVIRONMENT.LOCATION.ROLE.HOST">>,
-    %RoutingKey = <<"qa.*.proxy.*">>,
-    {ok, RoutingKey} =
-    dog_ips_agent:get_group_routing_key(),
-    Pid = erlang:self(),
-    Message = term_to_binary([{count, Count},
-                  {local_time, calendar:local_time()}, {pid, Pid},
-                  {user_data, UserData}]),
-    Response = thumper:publish(Message, ?IptablesExchange,
-                   RoutingKey),
-    lager:debug("publish_to_queue Response: ~p~n",
-        [Response]),
-    Response.
 
 remove_comments(Ruleset) ->
   NoCommentRulesList = lists:filter(fun(X) -> case re:run(X,"^#") of nomatch -> true; _ -> false end end, split(Ruleset,"\n", all) ),
