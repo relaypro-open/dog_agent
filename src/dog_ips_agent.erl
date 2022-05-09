@@ -14,7 +14,7 @@
 
 -export([
      keepalive/0, 
-     start_link/0, watch_config/0, watch_interfaces/0,
+     start_link/0,  watch_interfaces/0,
      watch_iptables/0,
      create_ipsets/1, read_hash/0
   ]).
@@ -55,14 +55,6 @@ watch_interfaces() ->
 -spec keepalive() -> ok.
 
 keepalive() -> gen_server:cast(?MODULE, keepalive).
-
--spec watch_config() -> ok.
-
-watch_config() ->
-    gen_server:cast(?MODULE, watch_config).
-
-
-
 
 -spec read_hash() -> Hash :: list().
 
@@ -111,7 +103,6 @@ init(_Args) ->
     KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
-    ok = watch_config(),
     ok = watch_iptables(),
     State = [],
     {ok, State}.
@@ -151,8 +142,6 @@ handle_cast(watch_iptables, _State) ->
     NewState = dog_config_agent:get_state(),
     {ok, _} = dog_ips:do_watch_iptables(NewState),
     {noreply, NewState};
-handle_cast(watch_config, State) ->
-    ok = dog_config:do_watch_config(), {noreply, State};
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
     lager:error("unknown_message: Msg: ~p, State: ~p",

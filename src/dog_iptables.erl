@@ -1,10 +1,10 @@
 -module(dog_iptables).
+-include_lib("amqp_client/include/amqp_client.hrl").
 
 -include("dog.hrl").
 
 -export([
          create_hash/1,
-         ensure_iptables_consumer/1,
          normalize_ruleset/1,
          read_current_ipv4_ipsets/0,
          read_current_ipv4_iptables/0,
@@ -14,15 +14,12 @@
          remove_docker/1,
          remove_quotes/1,
          rule_count/1,
-         subscribe_to_iptables_updates/1,
-         unsubscribe_to_iptables_updates/1,
+         start_iptables_service/4,
+         stop_iptables_service/0,
+         subscriber_loop/4,
          write_ipv4_ruleset/1,
          write_ipv6_ruleset/1,
-      persist_ipv4_tables/0
-        ]).
-
--export([
-        handle_callback/5
+         persist_ipv4_tables/0
         ]).
 
 -define(IP4TABLES_SAVE_COMMAND, "echo \"\`/home/dog/bin/iptables-save -t filter\`\"").
@@ -352,15 +349,15 @@ update_iptables4(Ruleset, Retry) ->
       ok -> ok = persist_ipv4_tables();
       error ->
       case Retry of
-        Retry when Retry =< IptablesRestoreRetryLimit ->
+        R when R =< IptablesRestoreRetryLimit ->
         timer:sleep(IptablesRestoreRetryWaitSeconds * 1000),
         lager:info("Retry count updating IPv4 iptables: ~p",
-               [Retry + 1]),
-        update_iptables4(Ruleset, Retry + 1);
-        Retry when Retry > IptablesRestoreRetryLimit ->
+               [R + 1]),
+        update_iptables4(Ruleset, R + 1);
+        R when R > IptablesRestoreRetryLimit ->
         lager:error("Unable to restore iptables after retry "
                 "number: ~p",
-                [Retry])
+                [R])
       end
     end.
 
@@ -396,25 +393,25 @@ update_iptables6(Ruleset, Retry) ->
       ok -> ok = persist_ipv6_tables();
       error ->
       case Retry of
-        Retry when Retry =< IptablesRestoreRetryLimit ->
+        R when R =< IptablesRestoreRetryLimit ->
         timer:sleep(IptablesRestoreRetryWaitSeconds * 1000),
         lager:info("Retry count updating IPv6 iptables: ~p",
-               [Retry + 1]),
-        update_iptables6(Ruleset, Retry + 1);
-        Retry when Retry > IptablesRestoreRetryLimit ->
+               [R + 1]),
+        update_iptables6(Ruleset, R + 1);
+        R when R > IptablesRestoreRetryLimit ->
         lager:error("Unable to restore iptables after retry "
                 "number: ~p",
-                [Retry])
+                [R])
       end
     end.
 
--spec iptables_subscriber_callback(_, _, binary(),
-                   pid()) -> ack.
+start_iptables_service(Environment,Location,Group,Hostkey) ->
+    turtle_service:new(dog_turtle_sup,dog_turtle_sup:iptables_service_spec(Environment,Location,Group,Hostkey)).
 
-iptables_subscriber_callback(DeliveryTag, RoutingKey,
-                 Payload, Pid) ->
-    lager:debug("message: ~p, ~p, ~p",
-        [DeliveryTag, RoutingKey, binary_to_term(Payload)]),
+stop_iptables_service() ->
+    turtle_service:stop(dog_turtle_sup,iptables_service).
+
+subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     lager:debug("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
     lager:debug("Proplist: ~p", [Proplist]),
@@ -429,23 +426,6 @@ iptables_subscriber_callback(DeliveryTag, RoutingKey,
     R6IptablesRuleset = maps:get(ruleset6_iptables,
                  UserData, false),
     Ipsets = maps:get(ipsets, UserData, false),
-    spawn(fun () ->
-          handle_callback(Ipsets, R4IpsetsRuleset,
-                  R6IpsetsRuleset, R4IptablesRuleset,
-                  R6IptablesRuleset)
-      end),
-    Pid ! sub,
-    ack.
-
--spec handle_callback(Ipsets :: iolist(),
-              R4IpsetsRuleset :: iolist(),
-              R6IpsetsRuleset :: iolist(),
-              R4IptablesRuleset :: iolist(),
-              R6IptablesRuleset :: iolist()) -> atom().
-
-handle_callback(Ipsets, R4IpsetsRuleset,
-        R6IpsetsRuleset, R4IptablesRuleset,
-        R6IptablesRuleset) ->
     case Ipsets of
       [] -> pass;
       _ ->
@@ -503,79 +483,8 @@ handle_callback(Ipsets, R4IpsetsRuleset,
         lager:info("No v6 iptables ruleset to apply"), pass;
         _ -> ok = update_iptables6(R6IptablesRuleset)
       end
-    end.
-
--spec ensure_iptables_consumer(RoutingKey ::
-                   binary()) -> no_return().
-
-ensure_iptables_consumer(RoutingKey) ->
-    Queue = get_iptables_queue(),
-    ok = unsubscribe_to_iptables_updates(Queue),
-    ok = create_iptables_queue(Queue),
-    ok = bind_iptables_updates(Queue, RoutingKey),
-    ok = subscribe_to_iptables_updates(Queue).
-
--spec get_iptables_queue() -> map().
-
-get_iptables_queue() ->
-    %{ok, Hostname} = dog_interfaces:get_fqdn(),
-    Hostkey = dog_config:hostkey(),
-    QueueName = "iptables." ++ binary_to_list(Hostkey),
-    Name = list_to_atom(QueueName),
-    #{broker => default, name => Name, queue => QueueName}.
-
--spec unsubscribe_to_iptables_updates(Name ::
-                      map()) -> ok.
-
-unsubscribe_to_iptables_updates(#{name := Name}) ->
-    dog_thumper_sup:ensure_consumer(down, Name), ok.
-
--spec create_iptables_queue(QueueDefinition ::
-                map()) -> atom().
-
-create_iptables_queue(#{broker := Broker, name := Name,
-            queue := QueueName}) ->
-    Op = {'queue.declare',
-      [{queue, list_to_binary(QueueName)},
-       {auto_delete, true}, {durable, true}]},
-    lager:debug("Name: ~p", [Name]),
-    case dog_thumper_sup:amqp_op(Broker, Name, [Op]) of
-      ok -> ok;
-      Error -> lager:error("Error: ~p", [Error]), Error
-    end.
-
--spec subscribe_to_iptables_updates(QueueDefinition ::
-                    map()) -> atom().
-
-subscribe_to_iptables_updates(#{broker := Broker,
-                name := Name, queue := QueueName}) ->
-    Pid = erlang:self(),
-    Callback = fun (A, B, C) ->
-               iptables_subscriber_callback(A, B, C, Pid)
-           end,
-    case dog_thumper_sup:ensure_consumer(up, Name, Broker,
-                     list_to_binary(QueueName), Callback)
-    of
-      {ok, _ChildPid} -> ok;
-      {error, {already_up, _ChildPid}} -> ok
-    end.
-
--spec bind_iptables_updates(QueueDefintion :: map(),
-                RoutingKey :: binary()) -> atom().
-
-bind_iptables_updates(#{broker := Broker,
-            name := ConsumerName, queue := QueueName},
-              RoutingKey) ->
-    Op = {'queue.bind',
-      [{queue, list_to_binary(QueueName)},
-       {exchange, <<"iptables">>}, {routing_key, RoutingKey}]},
-    lager:debug("ConsumerName: ~p", [ConsumerName]),
-    case dog_thumper_sup:amqp_op(Broker, ConsumerName, [Op])
-    of
-      ok -> lager:debug("ok");
-      {ok, Reason} -> lager:debug("Reason: ~p", [Reason]), ok;
-      Error -> lager:error("Error: ~p", [Error]), Error
-    end.
+    end,
+    {ack,State}.
 
 remove_comments(Ruleset) ->
   NoCommentRulesList = lists:filter(fun(X) -> case re:run(X,"^#") of nomatch -> true; _ -> false end end, split(Ruleset,"\n", all) ),

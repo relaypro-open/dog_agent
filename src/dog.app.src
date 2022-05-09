@@ -11,7 +11,7 @@
     public_key,
     ssl,
     lager,
-    thumper,
+    turtle,
     hackney,
     amqp_client,
     rabbit_common,

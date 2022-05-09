@@ -306,7 +306,6 @@ ec2_public_ipv4(Mac) ->
     Headers = [],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
-    %{ok, integer(), list(), client_ref()} | {ok, integer(), list()} | {error, term()}
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, Error} ->
             lager:error("Error getting ec2_public_ipv4: ~p", [Error]),
@@ -341,11 +340,8 @@ ec2_macs() ->
             case StatusCode of
                 200 ->
                     {ok,Body} = hackney:body(ClientRef),
-                    %Macs = string:split(Body,"\n"),
                     Macs = re:split(Body, "\n", [{return, list}]),
-                    %MacStrings@0 = [binary_to_list(Mac) || Mac <- Macs],
                     MacStrings@0 = [Mac || Mac <- Macs],
-                    %MacStrings@1 = [lists:flatten(string:split(Mac,"/")) || Mac <- MacStrings@0],
                     MacStrings@1 = [lists:flatten(re:split(Mac,"/",[{return, list}])) || Mac <- MacStrings@0],
                     MacStrings@1;
                 _ ->
@@ -444,7 +440,13 @@ publish_to_queue(Config) ->
     BrokerRoutingKey = <<"ips">>,
     Pid = erlang:self(),
     Message = term_to_binary([{count, Count}, {local_time, calendar:local_time()}, {pid, Pid}, {user_data, UserData}]),
-    Response = thumper:publish(Message, ?IPsExchange, BrokerRoutingKey),
+	Response = turtle:publish(ips_publisher,
+	?IPsExchange,
+	BrokerRoutingKey,
+	<<"text/json">>,
+	Message,
+	#{ delivery_mode => persistent }),
+
     lager:info("Response: ~p~n", [Response]),
     Response.
 
