@@ -27,8 +27,11 @@ dog_iptables_test_() ->
               , ?_assertMatch(["cat"++_], dog_os_cmd_history())
 
               , ?_assertMatch(ok, dog_iptables:ensure_iptables_consumer(<<>>))
-              , ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,'iptables.']},
-                               {dog_thumper_sup,ensure_consumer,
+              %, ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,'iptables.']},
+              %                 {dog_thumper_sup,ensure_consumer,
+              %                  [up,'iptables.'|_]}], get_ensure_consumer_calls())
+              , ?_assertMatch([{dog_service,new,[down,'iptables.']},
+                               {dog_service,stop,
                                 [up,'iptables.'|_]}], get_ensure_consumer_calls())
 
               , ?_assertMatch("",         ?N("# a comment"))               % remove comments
@@ -53,12 +56,12 @@ dog_iptables_test_() ->
 
               , ?_assertMatch(1, dog_iptables:rule_count("-A eunit\n:A eunit"))
               , ?_assertMatch(ok, dog_iptables:subscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
-              , ?_assertMatch([{dog_thumper_sup,ensure_consumer,
-                                   [up,queue,default,<<"queue">>|_]}], get_ensure_consumer_calls())
+              %, ?_assertMatch([{dog_thumper_sup,ensure_consumer,
+              %                     [up,queue,default,<<"queue">>|_]}], get_ensure_consumer_calls())
 
               , ?_assertMatch(ok, dog_iptables:unsubscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
-              , ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,queue]}], get_ensure_consumer_calls())
-
+%              , ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,queue]}], get_ensure_consumer_calls())
+%
               , ?_assertMatch({ok, _}, dog_iptables:write_ipv4_ruleset("-A"))
               , ?_assertMatch({ok, _}, dog_iptables:write_ipv6_ruleset("-A"))
 
@@ -124,7 +127,7 @@ get_file_history() ->
     History.
 
 setup() ->
-    dog_fixture:setup([dog_os, dog_thumper_allow, thumper_publish, file_write_nothing, timer_nosleep, hackney_ec2, lager_app, dog_ips_agent_create_ipsets]).
+    dog_fixture:setup([dog_os, dog_turtle_allow, turtle_publish, file_write_nothing, timer_nosleep, hackney_ec2, lager_app, dog_ips_agent_create_ipsets]).
 
 teardown(Context) ->
     dog_fixture:teardown(Context).

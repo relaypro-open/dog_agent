@@ -34,9 +34,9 @@ dog_envconfig(destroy) ->
 
 dog_app() ->
     _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
-         file_read_config_map(), inet_ifs(),          dog_thumper_allow(),
-         thumper_publish(),      hackney_deny(),      lager_none(),
-         dog_version(),          thumper_noconnect()],
+         file_read_config_map(), inet_ifs(),          dog_turtle_allow(),
+         turtle_publish(),      hackney_deny(),      lager_none(),
+         dog_version(),          turtle_noconnect()],
 
     {ok, Apps} = application:ensure_all_started(dog),
     meck:reset(dog_os),
@@ -47,9 +47,9 @@ dog_app(destroy) ->
 
 dog_ec2_app() ->
     _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
-         file_read_config_map(), inet_ifs(),          dog_thumper_allow(),
-         thumper_publish(),      hackney_ec2(),       lager_none(),
-         dog_version(),          thumper_noconnect()],
+         file_read_config_map(), inet_ifs(),          dog_turtle_allow(),
+         turtle_publish(),      hackney_ec2(),       lager_none(),
+         dog_version(),          turtle_noconnect()],
 
     {ok, Apps} = application:ensure_all_started(dog),
     meck:reset(dog_os),
@@ -74,13 +74,21 @@ lager_app() ->
 lager_app(destroy) ->
     [ application:stop(X) || X <- lager_app() ].
 
-thumper_noconnect() ->
-    application:load(thumper),
-    application:set_env(thumper, thumper_svrs, []).
+%thumper_noconnect() ->
+%    application:load(thumper),
+%    application:set_env(thumper, thumper_svrs, []).
+%
+%thumper_noconnect(destroy) ->
+%    application:unset_env(thumper, thumper_svrs),
+%    application:unload(thumper).
 
-thumper_noconnect(destroy) ->
-    application:unset_env(thumper, thumper_svrs),
-    application:unload(thumper).
+turtle_noconnect() ->
+    application:load(turtle),
+    application:set_env(turtle, turtle_svrs, []).
+
+turtle_noconnect(destroy) ->
+    application:unset_env(turtle, turtle_svrs),
+    application:unload(turtle).
 
 dog_ips_agent_create_ipsets() ->
     meck:new(dog_ips_agent, [passthrough]),
@@ -90,21 +98,47 @@ dog_ips_agent_create_ipsets(destroy) ->
     meck:unload(dog_ips_agent).
 
 %% MOCKS
-dog_thumper_allow() ->
-    meck:new(dog_thumper_sup, [passthrough]),
-    meck:expect(dog_thumper_sup, ensure_consumer, fun(up, _Name, _Broker, _QueueName, _Callback) -> {ok, erlang:self()} end),
-    meck:expect(dog_thumper_sup, ensure_consumer, fun(down, _Name) -> ok end),
-    meck:expect(dog_thumper_sup, amqp_op,         fun(_Broker, _Name, [_Op]) -> ok end).
+%src/dog_sup.erl
+%18:          #{id => dog_turtle_sup,
+%19:            start => {dog_turtle_sup, start_link, []},
+dog_turtle_allow() ->
+    meck:new(dog_turtle_sup, [passthrough]),
+    meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).%,
+    %meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
+    %meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
+    %meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> {} end),
+    %meck:new(turtle_service, [passthrough]),
+    %meck:expect(turtle_service, new, fun(_Dog_turtle_sup,_Turtle_config_service_spec_Hostkey) -> ok end), 
+    %meck:expect(turtle_service, stop, fun(_Dog_turtle_sup,_Turtle_config_service) -> ok end).
 
-dog_thumper_allow(destroy) ->
-    meck:unload(dog_thumper_sup).
+%48:    turtle_service:new(dog_turtle_sup,dog_turtle_sup:config_service_spec(Hostkey)).
+%51:    turtle_service:stop(dog_turtle_sup,config_service).
 
-thumper_publish() ->
-    meck:new(thumper, [passthrough]),
-    meck:expect(thumper, publish, fun(_, _, _) -> ok end).
+dog_turtle_allow(destroy) ->
+    meck:unload(dog_turtle_sup).
 
-thumper_publish(destroy) ->
-    meck:unload(thumper).
+turtle_publish() ->
+    meck:new(turtle, [passthrough]),
+    meck:expect(turtle, publish, fun(_Publisher,_Exchange,_RoutingKey,_FileType,_Message,_Metadata) -> ok end).
+
+turtle_publish(destroy) ->
+    meck:unload(turtle).
+
+%dog_thumper_allow() ->
+%    meck:new(dog_thumper_sup, [passthrough]),
+%    meck:expect(dog_thumper_sup, ensure_consumer, fun(up, _Name, _Broker, _QueueName, _Callback) -> {ok, erlang:self()} end),
+%    meck:expect(dog_thumper_sup, ensure_consumer, fun(down, _Name) -> ok end),
+%    meck:expect(dog_thumper_sup, amqp_op,         fun(_Broker, _Name, [_Op]) -> ok end).
+%
+%dog_thumper_allow(destroy) ->
+%    meck:unload(dog_thumper_sup).
+%
+%thumper_publish() ->
+%    meck:new(thumper, [passthrough]),
+%    meck:expect(thumper, publish, fun(_, _, _) -> ok end).
+%
+%thumper_publish(destroy) ->
+%    meck:unload(thumper).
 
 hackney() ->
     {ok, Apps} = application:ensure_all_started(hackney),

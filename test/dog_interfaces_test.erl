@@ -42,7 +42,7 @@ dog_app_test_() ->
      end}.
 
 setup() ->
-    dog_fixture:setup([dog_version, dog_envconfig, hackney_ec2, inet_ifs, thumper_publish]).
+    dog_fixture:setup([dog_version, dog_envconfig, hackney_ec2, inet_ifs, turtle_publish]).
 
 teardown(Context) ->
     dog_fixture:teardown(Context).
