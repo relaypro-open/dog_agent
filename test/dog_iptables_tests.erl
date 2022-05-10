@@ -26,13 +26,13 @@ dog_iptables_test_() ->
               , ?_assertMatch(<<"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855">>, dog_iptables:create_hash(dog_iptables:read_current_ipv4_iptables()))
               , ?_assertMatch(["cat"++_], dog_os_cmd_history())
 
-              , ?_assertMatch(ok, dog_iptables:ensure_iptables_consumer(<<>>))
+              %, ?_assertMatch(ok, dog_iptables:ensure_iptables_consumer(<<>>))
               %, ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,'iptables.']},
               %                 {dog_thumper_sup,ensure_consumer,
               %                  [up,'iptables.'|_]}], get_ensure_consumer_calls())
-              , ?_assertMatch([{dog_service,new,[down,'iptables.']},
-                               {dog_service,stop,
-                                [up,'iptables.'|_]}], get_ensure_consumer_calls())
+              %, ?_assertMatch([{dog_service,new,[down,'iptables.']},
+              %                 {dog_service,stop,
+              %                  [up,'iptables.'|_]}], get_ensure_consumer_calls())
 
               , ?_assertMatch("",         ?N("# a comment"))               % remove comments
               , ?_assertMatch(":A [0:0]", ?N(":A [1:2]"))                  % zero counters
@@ -55,11 +55,11 @@ dog_iptables_test_() ->
               , ?_assertMatch(["","",":A",""], dog_iptables:remove_docker(["-A DOCKER",":DOCKER",":A","-A FORWARD -j DROP"]))
 
               , ?_assertMatch(1, dog_iptables:rule_count("-A eunit\n:A eunit"))
-              , ?_assertMatch(ok, dog_iptables:subscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
+              %, ?_assertMatch(ok, dog_iptables:subscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
               %, ?_assertMatch([{dog_thumper_sup,ensure_consumer,
               %                     [up,queue,default,<<"queue">>|_]}], get_ensure_consumer_calls())
 
-              , ?_assertMatch(ok, dog_iptables:unsubscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
+              %, ?_assertMatch(ok, dog_iptables:unsubscribe_to_iptables_updates(#{broker => default, name => 'queue', queue => "queue"}))
 %              , ?_assertMatch([{dog_thumper_sup,ensure_consumer,[down,queue]}], get_ensure_consumer_calls())
 %
               , ?_assertMatch({ok, _}, dog_iptables:write_ipv4_ruleset("-A"))
@@ -106,15 +106,15 @@ dog_iptables_test_() ->
              ]
      end}.
 
-get_ensure_consumer_calls() ->
-    Result = [ {dog_thumper_sup, ensure_consumer, X} || {_, {dog_thumper_sup, ensure_consumer, X}, _} <- meck:history(dog_thumper_sup) ],
-    meck:reset(dog_thumper_sup),
-    Result.
-
-get_publishes() ->
-    Result = [ {binary_to_term(Payload), Exchange, RoutingKey} || {_, {thumper, publish, [Payload, Exchange, RoutingKey]}, _} <- meck:history(thumper) ],
-    meck:reset(thumper),
-    Result.
+%get_ensure_consumer_calls() ->
+%    Result = [ {dog_thumper_sup, ensure_consumer, X} || {_, {dog_thumper_sup, ensure_consumer, X}, _} <- meck:history(dog_thumper_sup) ],
+%    meck:reset(dog_thumper_sup),
+%    Result.
+%
+%get_publishes() ->
+%    Result = [ {binary_to_term(Payload), Exchange, RoutingKey} || {_, {thumper, publish, [Payload, Exchange, RoutingKey]}, _} <- meck:history(thumper) ],
+%    meck:reset(thumper),
+%    Result.
 
 dog_os_cmd_history() ->
     History = [ Cmd || {_, {dog_os, cmd, [Cmd]}, _} <- meck:history(dog_os) ],

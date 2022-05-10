@@ -38,4 +38,5 @@ setup() ->
     dog_fixture:setup([dog_app]).
 
 teardown(Context) ->
+    ?debugFmt("Context: ~p", [Context]),
     dog_fixture:teardown(Context).

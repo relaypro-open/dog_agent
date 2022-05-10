@@ -33,10 +33,34 @@ dog_envconfig(destroy) ->
     application:unset_env(dog, group).
 
 dog_app() ->
-    _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
-         file_read_config_map(), inet_ifs(),          dog_turtle_allow(),
-         turtle_publish(),      hackney_deny(),      lager_none(),
-         dog_version(),          turtle_noconnect()],
+    _ = [
+        dog_os(),
+        timer_nosleep(),
+        file_write_nothing(),      
+        file_read_config_map(),
+        inet_ifs(),
+        turtle_publish(),
+        hackney_deny(),
+        %lager_app(),                
+        lager_none(),                
+        dog_version(),
+        turtle_noconnect(),
+        dog_turtle_allow()         
+        ],                             
+
+%    _ = [
+%         dog_os(),
+%         dog_turtle_allow(),
+%         dog_version(),
+%         file_read_config_map(),
+%         file_write_nothing(),
+%         hackney_deny(),
+%         inet_ifs(),
+%         %lager_none(),
+%         timer_nosleep(),
+%         turtle_noconnect(),
+%         turtle_publish()
+%        ],
 
     {ok, Apps} = application:ensure_all_started(dog),
     meck:reset(dog_os),
@@ -46,10 +70,19 @@ dog_app(destroy) ->
      [ application:stop(X) || X <- lists:reverse(dog_app()) ].
 
 dog_ec2_app() ->
-    _ = [dog_os(),               timer_nosleep(),     file_write_nothing(),
-         file_read_config_map(), inet_ifs(),          dog_turtle_allow(),
-         turtle_publish(),      hackney_ec2(),       lager_none(),
-         dog_version(),          turtle_noconnect()],
+    _ = [
+         dog_os(),
+         timer_nosleep(),
+         file_write_nothing(),
+         file_read_config_map(),
+         inet_ifs(),
+         dog_turtle_allow(),
+         turtle_publish(),
+         hackney_ec2(),
+         lager_none(),
+         dog_version(),
+         turtle_noconnect()
+        ],
 
     {ok, Apps} = application:ensure_all_started(dog),
     meck:reset(dog_os),
@@ -68,6 +101,7 @@ lager_none(destroy) ->
 
 lager_app() ->
     _ = lager_none(),
+    application:set_env(lager, handlers, [{lager_console_backend, [{level, debug}]}]),
     {ok, Apps} = application:ensure_all_started(lager),
     Apps.
 
@@ -84,10 +118,10 @@ lager_app(destroy) ->
 
 turtle_noconnect() ->
     application:load(turtle),
-    application:set_env(turtle, turtle_svrs, []).
+    application:set_env(turtle, connection_config, []).
 
 turtle_noconnect(destroy) ->
-    application:unset_env(turtle, turtle_svrs),
+    application:unset_env(turtle, connection_config),
     application:unload(turtle).
 
 dog_ips_agent_create_ipsets() ->
@@ -98,23 +132,21 @@ dog_ips_agent_create_ipsets(destroy) ->
     meck:unload(dog_ips_agent).
 
 %% MOCKS
-%src/dog_sup.erl
-%18:          #{id => dog_turtle_sup,
-%19:            start => {dog_turtle_sup, start_link, []},
 dog_turtle_allow() ->
-    meck:new(dog_turtle_sup, [passthrough]),
-    meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).%,
-    %meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
-    %meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
-    %meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> {} end),
-    %meck:new(turtle_service, [passthrough]),
-    %meck:expect(turtle_service, new, fun(_Dog_turtle_sup,_Turtle_config_service_spec_Hostkey) -> ok end), 
-    %meck:expect(turtle_service, stop, fun(_Dog_turtle_sup,_Turtle_config_service) -> ok end).
-
-%48:    turtle_service:new(dog_turtle_sup,dog_turtle_sup:config_service_spec(Hostkey)).
-%51:    turtle_service:stop(dog_turtle_sup,config_service).
+    meck:new(dog_turtle_sup),
+    meck:expect(dog_turtle_sup, init, fun([]) -> {ok,{} } end),
+    meck:expect(dog_turtle_sup, start_link, fun() -> {ok,erlang:self()} end),
+    meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
+    meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
+    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
+    %meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> {} end).
+    meck:new(turtle_service),
+    meck:expect(turtle_service, new, fun(_Dog_turtle_sup,_Turtle_config_service_spec_Hostkey) -> ok end), 
+    meck:expect(turtle_service, stop, fun(_Dog_turtle_sup,_Turtle_config_service) -> ok end),
+    meck:expect(turtle_service, child_spec, fun(_Config) -> {} end).
 
 dog_turtle_allow(destroy) ->
+    meck:unload(turtle_service),
     meck:unload(dog_turtle_sup).
 
 turtle_publish() ->
@@ -240,7 +272,9 @@ file_read_config_map() ->
     _ = file_write_nothing(), % meck cannot concurrently load the same module,
                               % so we force serialization of resources
     ConfigMap = config_map(),
-    meck:expect(file, read_file,  fun(_) -> {ok, jsx:encode(ConfigMap)} end).
+    meck:expect(file, read_file,  fun(_) -> {ok, jsx:encode(ConfigMap)} end).%,
+    %meck:new(dog_config, [passthrough]),
+    %meck:expect(dog_config, read_config_file,  fun() -> lager:info("read_config_file()"), {ok, ConfigMap} end).
 
 dog_os() ->
     meck:new(dog_os, [passthrough]),

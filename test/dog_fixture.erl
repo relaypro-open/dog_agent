@@ -66,6 +66,6 @@ setup(Targets) ->
 teardown({Pid, Apps, _}) ->
     %% gen_liet must be stopped explicitly because the link termination takes
     %% too long, and meck has parallelization problems
-    gen_liet:stop(Pid, ?Timeout),
 
+    gen_liet:stop(Pid, ?Timeout),
     [application:stop(X) || X <- lists:reverse(Apps)].

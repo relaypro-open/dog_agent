@@ -5,6 +5,7 @@
 
 -export([
          create_hash/1,
+         handle_callback/5,
          normalize_ruleset/1,
          read_current_ipv4_ipsets/0,
          read_current_ipv4_iptables/0,
@@ -411,6 +412,7 @@ start_iptables_service(Environment,Location,Group,Hostkey) ->
 stop_iptables_service() ->
     turtle_service:stop(dog_turtle_sup,iptables_service).
 
+
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     lager:debug("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
@@ -426,6 +428,14 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     R6IptablesRuleset = maps:get(ruleset6_iptables,
                  UserData, false),
     Ipsets = maps:get(ipsets, UserData, false),
+    handle_callback(Ipsets, R4IpsetsRuleset,    
+                    R6IpsetsRuleset, R4IptablesRuleset,
+                          R6IptablesRuleset),
+    {ack, State }.
+
+handle_callback(Ipsets, R4IpsetsRuleset,    
+                    R6IpsetsRuleset, R4IptablesRuleset,
+                          R6IptablesRuleset) ->
     case Ipsets of
       [] -> pass;
       _ ->
@@ -483,8 +493,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
         lager:info("No v6 iptables ruleset to apply"), pass;
         _ -> ok = update_iptables6(R6IptablesRuleset)
       end
-    end,
-    {ack,State}.
+    end.
 
 remove_comments(Ruleset) ->
   NoCommentRulesList = lists:filter(fun(X) -> case re:run(X,"^#") of nomatch -> true; _ -> false end end, split(Ruleset,"\n", all) ),
