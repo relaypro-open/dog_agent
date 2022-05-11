@@ -50,7 +50,9 @@ setup() ->
 
     %% Set the provider so that our dog_ips will look for an ec2 interfaces change and
     %% publish the necessary response
+    %application:set_env(dog, is_ec2_instance, true),
     DogState2 = dog_state:set_provider(DogState, <<"ec2">>),
+    DogState3 = dog_state:set_interfaces(DogState2, <<"">>), %interfaces must be defined.
 
     Fixture2 = dog_fixture:setup([
                                   dog_version,
@@ -59,11 +61,12 @@ setup() ->
                                   inet_ifs,
                                   turtle_publish,
                                   dog_turtle_allow,
+                                  dog_turtle_service_allow,
                                   lager_app,
                                   file_read_config_map
                                  ]),
 
-    #{fixture => Fixture2, dog_state => DogState2}.
+    #{fixture => Fixture2, dog_state => DogState3}.
 
 teardown(#{fixture := Fixture2}) ->
     dog_fixture:teardown(Fixture2).
