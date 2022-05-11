@@ -33,6 +33,7 @@ dog_envconfig(destroy) ->
     application:unset_env(dog, group).
 
 dog_app() ->
+    debug("~p~n",["0"]),
     _ = [
         dog_os(),
         timer_nosleep(),
@@ -45,7 +46,8 @@ dog_app() ->
         lager_none(),                
         dog_version(),
         turtle_noconnect(),
-        dog_turtle_allow()         
+        dog_turtle_allow(),         
+        dog_turtle_service_allow()
         ],                             
 
 %    _ = [
@@ -61,13 +63,23 @@ dog_app() ->
 %         turtle_noconnect(),
 %         turtle_publish()
 %        ],
-
+    debug("~p~n",["1"]),
     {ok, Apps} = application:ensure_all_started(dog),
+    debug("~p~n",["2"]),
     meck:reset(dog_os),
+    debug("~p~n",["3"]),
+    lager:info("Apps: ~p~n",[Apps]),
+    debug("~p~n",["4"]),
     Apps.
 
 dog_app(destroy) ->
-     [ application:stop(X) || X <- lists:reverse(dog_app()) ].
+    debug("~p~n",["5"]),
+    lists:foreach(fun(App) ->
+                          debug("~p~n",[App]),
+                          application:stop(App)
+                  end, lists:reverse([turtle,dog_app()])),
+    % [ application:stop(X) || X <- lists:reverse(dog_app()) ],
+    debug("~p~n",["6"]).
 
 dog_ec2_app() ->
     _ = [
@@ -77,6 +89,7 @@ dog_ec2_app() ->
          file_read_config_map(),
          inet_ifs(),
          dog_turtle_allow(),
+         dog_turtle_service_allow(),
          turtle_publish(),
          hackney_ec2(),
          lager_none(),
@@ -89,7 +102,7 @@ dog_ec2_app() ->
     Apps.
 
 dog_ec2_app(destroy) ->
-     [ application:stop(X) || X <- lists:reverse(dog_ec2_app()) ].
+     [ application:stop(X) || X <- lists:reverse([turtle,dog_ec2_app()]) ].
 
 lager_none() ->
     application:load(lager),
@@ -138,16 +151,20 @@ dog_turtle_allow() ->
     meck:expect(dog_turtle_sup, start_link, fun() -> {ok,erlang:self()} end),
     meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
     meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
-    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
+    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).%,
     %meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> {} end).
+
+dog_turtle_allow(destroy) ->
+    meck:unload(dog_turtle_sup).
+
+dog_turtle_service_allow() ->
     meck:new(turtle_service),
     meck:expect(turtle_service, new, fun(_Dog_turtle_sup,_Turtle_config_service_spec_Hostkey) -> ok end), 
     meck:expect(turtle_service, stop, fun(_Dog_turtle_sup,_Turtle_config_service) -> ok end),
     meck:expect(turtle_service, child_spec, fun(_Config) -> {} end).
 
-dog_turtle_allow(destroy) ->
-    meck:unload(turtle_service),
-    meck:unload(dog_turtle_sup).
+dog_turtle_service_allow(destroy) ->
+    meck:unload(turtle_service).
 
 turtle_publish() ->
     meck:new(turtle, [passthrough]),
@@ -193,6 +210,7 @@ hackney_ec2() ->
     _ = hackney(),
     Mac = mac(),
     PublicIp = public_ip(),
+    application:unset_env(dog, is_ec2_instance),
     meck:expect(hackney, request,
                 fun(get, "http://169.254.169.254/latest/meta-data/placement/availability-zone", _, _, _) ->
                         {ok, 200, [], availability_zone};
@@ -335,3 +353,6 @@ interfaces() -> [].
 
 mac() -> "".
 public_ip() -> "".
+
+debug(String,Values) ->
+    file:write_file("/tmp/debug.txt",io_lib:format(String,Values),[append]).

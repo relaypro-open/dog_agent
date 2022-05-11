@@ -19,7 +19,8 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    ok = write_pid_file(), dog_sup:start_link().
+    %ok = write_pid_file(), 
+    dog_sup:start_link().
 
 %%--------------------------------------------------------------------
 stop(_State) -> ok.

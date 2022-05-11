@@ -68,4 +68,8 @@ teardown({Pid, Apps, _}) ->
     %% too long, and meck has parallelization problems
 
     gen_liet:stop(Pid, ?Timeout),
-    [application:stop(X) || X <- lists:reverse(Apps)].
+    lists:foreach(fun(App) ->
+         io:format("Stopping App: ~p~n",[App]), 
+         application:stop(App)
+                  end, lists:reverse(Apps)).
+    %[application:stop(X) || X <- lists:reverse(Apps)].

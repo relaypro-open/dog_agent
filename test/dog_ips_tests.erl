@@ -45,7 +45,7 @@ setup() ->
     %% our test cases.
     Fixture = dog_fixture:setup([dog_app]),
     DogState = dog_config_agent:get_state(),
-    ?debugFmt("DogState: ~p",[DogState]),
+    %?debugFmt("DogState: ~p",[DogState]),
     dog_fixture:teardown(Fixture),
 
     %% Set the provider so that our dog_ips will look for an ec2 interfaces change and

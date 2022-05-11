@@ -33,15 +33,15 @@ do_get_host_routing_key(State) ->
                 dog_state:dog_state()) -> no_return().
 
 do_watch_iptables(State) ->
-    lager:debug("do_watch_iptables"),
-    {ok, GroupRoutingKey} = do_get_group_routing_key(State),
-    lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
-    ok =
-    dog_iptables:ensure_iptables_consumer(GroupRoutingKey),
-    {ok, HostRoutingKey} = do_get_host_routing_key(State),
-    lager:debug("HostRoutingKey: ~p", [HostRoutingKey]),
-    ok =
-    dog_iptables:ensure_iptables_consumer(HostRoutingKey),
+    %lager:debug("do_watch_iptables"),
+    %{ok, GroupRoutingKey} = do_get_group_routing_key(State),
+    %lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
+    %ok =
+    %dog_iptables:ensure_iptables_consumer(GroupRoutingKey),
+    %{ok, HostRoutingKey} = do_get_host_routing_key(State),
+    %lager:debug("HostRoutingKey: ~p", [HostRoutingKey]),
+    %ok =
+    %dog_iptables:ensure_iptables_consumer(HostRoutingKey),
     {ok, State}.
 
 %% @doc watches for IP updates, publishes to queue.

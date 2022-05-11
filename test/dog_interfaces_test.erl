@@ -2,13 +2,14 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-dog_app_test_() ->
+dog_interfaces_test_() ->
     {setup,
      fun setup/0,
      fun teardown/1,
-     fun(C) ->
+     fun(_C) ->
              [
-              ?_assertMatch("availability-zone", dog_interfaces:ec2_availability_zone())
+                ?_assertMatch(<<"ec2">>, dog_interfaces:get_provider())
+              , ?_assertMatch("availability-zone", dog_interfaces:ec2_availability_zone())
               , ?_assertMatch({"instance-id", "availability-zone", [<<"security-group">>], <<"owner-id">>}, dog_interfaces:ec2_info())
 
               , ?_assertMatch("instance-id",       dog_interfaces:ec2_instance_id())
@@ -31,18 +32,20 @@ dog_app_test_() ->
               , ?_assertEqual({ok, dog_fixture:interfaces_expect()}, dog_interfaces:get_local_interfaces())
               , ?_assertEqual({ok, dog_fixture:location()},          dog_interfaces:get_location_key())
 
-              , ?_assertMatch(<<"ec2">>, dog_interfaces:get_provider())
               , ?_assertMatch(ok,        dog_interfaces:ip_to_queue())
               , ?_assertMatch(false,     dog_interfaces:is_docker_instance())
               , ?_assertMatch(true,      dog_interfaces:is_ec2_instance())
               , ?_assertMatch(false,     dog_interfaces:is_ec2_private_instance())
               , ?_assertMatch(false,     dog_interfaces:is_softlayer_instance())
               , ?_assertMatch(ok,        dog_interfaces:publish_to_queue(<<>>))
+              %, ?_assertMatch("", meck:history(hackney))
              ]
      end}.
 
 setup() ->
-    dog_fixture:setup([dog_version, dog_envconfig, hackney_ec2, inet_ifs, turtle_publish]).
+    dog_fixture:setup([dog_version, dog_envconfig, 
+                       hackney_ec2, 
+                       inet_ifs, turtle_publish]).
 
 teardown(Context) ->
     dog_fixture:teardown(Context).
