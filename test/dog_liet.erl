@@ -33,7 +33,6 @@ dog_envconfig(destroy) ->
     application:unset_env(dog, group).
 
 dog_app() ->
-    debug("~p~n",["0"]),
     _ = [
         dog_os(),
         timer_nosleep(),
@@ -42,7 +41,6 @@ dog_app() ->
         inet_ifs(),
         turtle_publish(),
         hackney_deny(),
-        %lager_app(),                
         lager_none(),                
         dog_version(),
         turtle_noconnect(),
@@ -50,36 +48,13 @@ dog_app() ->
         dog_turtle_service_allow()
         ],                             
 
-%    _ = [
-%         dog_os(),
-%         dog_turtle_allow(),
-%         dog_version(),
-%         file_read_config_map(),
-%         file_write_nothing(),
-%         hackney_deny(),
-%         inet_ifs(),
-%         %lager_none(),
-%         timer_nosleep(),
-%         turtle_noconnect(),
-%         turtle_publish()
-%        ],
-    debug("~p~n",["1"]),
     {ok, Apps} = application:ensure_all_started(dog),
-    debug("~p~n",["2"]),
     meck:reset(dog_os),
-    debug("~p~n",["3"]),
     lager:info("Apps: ~p~n",[Apps]),
-    debug("~p~n",["4"]),
     Apps.
 
 dog_app(destroy) ->
-    debug("~p~n",["5"]),
-    lists:foreach(fun(App) ->
-                          debug("~p~n",[App]),
-                          application:stop(App)
-                  end, lists:reverse([turtle,dog_app()])),
-    % [ application:stop(X) || X <- lists:reverse(dog_app()) ],
-    debug("~p~n",["6"]).
+    [ application:stop(X) || X <- lists:reverse([turtle,dog_app()]) ].
 
 dog_ec2_app() ->
     _ = [
@@ -121,14 +96,6 @@ lager_app() ->
 lager_app(destroy) ->
     [ application:stop(X) || X <- lager_app() ].
 
-%thumper_noconnect() ->
-%    application:load(thumper),
-%    application:set_env(thumper, thumper_svrs, []).
-%
-%thumper_noconnect(destroy) ->
-%    application:unset_env(thumper, thumper_svrs),
-%    application:unload(thumper).
-
 turtle_noconnect() ->
     application:load(turtle),
     application:set_env(turtle, connection_config, []).
@@ -146,19 +113,18 @@ dog_ips_agent_create_ipsets(destroy) ->
 
 %% MOCKS
 dog_turtle_allow() ->
-    meck:new(dog_turtle_sup),
+    meck:new(dog_turtle_sup, [passthrough]),
     meck:expect(dog_turtle_sup, init, fun([]) -> {ok,{} } end),
     meck:expect(dog_turtle_sup, start_link, fun() -> {ok,erlang:self()} end),
     meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
     meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
-    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).%,
-    %meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> {} end).
+    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).
 
 dog_turtle_allow(destroy) ->
     meck:unload(dog_turtle_sup).
 
 dog_turtle_service_allow() ->
-    meck:new(turtle_service),
+    meck:new(turtle_service, [passthrough]),
     meck:expect(turtle_service, new, fun(_Dog_turtle_sup,_Turtle_config_service_spec_Hostkey) -> ok end), 
     meck:expect(turtle_service, stop, fun(_Dog_turtle_sup,_Turtle_config_service) -> ok end),
     meck:expect(turtle_service, child_spec, fun(_Config) -> {} end).
@@ -172,22 +138,6 @@ turtle_publish() ->
 
 turtle_publish(destroy) ->
     meck:unload(turtle).
-
-%dog_thumper_allow() ->
-%    meck:new(dog_thumper_sup, [passthrough]),
-%    meck:expect(dog_thumper_sup, ensure_consumer, fun(up, _Name, _Broker, _QueueName, _Callback) -> {ok, erlang:self()} end),
-%    meck:expect(dog_thumper_sup, ensure_consumer, fun(down, _Name) -> ok end),
-%    meck:expect(dog_thumper_sup, amqp_op,         fun(_Broker, _Name, [_Op]) -> ok end).
-%
-%dog_thumper_allow(destroy) ->
-%    meck:unload(dog_thumper_sup).
-%
-%thumper_publish() ->
-%    meck:new(thumper, [passthrough]),
-%    meck:expect(thumper, publish, fun(_, _, _) -> ok end).
-%
-%thumper_publish(destroy) ->
-%    meck:unload(thumper).
 
 hackney() ->
     {ok, Apps} = application:ensure_all_started(hackney),
@@ -291,8 +241,6 @@ file_read_config_map() ->
                               % so we force serialization of resources
     ConfigMap = config_map(),
     meck:expect(file, read_file,  fun(_) -> {ok, jsx:encode(ConfigMap)} end).%,
-    %meck:new(dog_config, [passthrough]),
-    %meck:expect(dog_config, read_config_file,  fun() -> lager:info("read_config_file()"), {ok, ConfigMap} end).
 
 dog_os() ->
     meck:new(dog_os, [passthrough]),
@@ -353,6 +301,3 @@ interfaces() -> [].
 
 mac() -> "".
 public_ip() -> "".
-
-debug(String,Values) ->
-    file:write_file("/tmp/debug.txt",io_lib:format(String,Values),[append]).

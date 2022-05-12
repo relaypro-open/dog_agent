@@ -23,16 +23,14 @@
         ]).
 
 restart_mq_services(Environment, Location, Group, Hostkey) ->
-    supervisor:terminate_child(dog_sup, config_agent),
-    %stop_config_service(),
+    stop_config_service(),
     start_config_service(Hostkey),
     dog_iptables:stop_iptables_service(),
     dog_iptables:start_iptables_service(Environment, Location, Group, Hostkey),
     dog_file_transfer:stop_file_transfer_service(),
     dog_file_transfer:start_file_transfer_service(Environment, Location, Group, Hostkey),
-    supervisor:terminate_child(dog_sup, ips_agent),
-    supervisor:restart_child(dog_sup, dog_ips_agent),
-    supervisor:restart_child(dog_sup, dog_config_agent).
+    supervisor:terminate_child(dog_sup, dog_ips_agent),
+    supervisor:restart_child(dog_sup, dog_ips_agent).
 
 %% @doc watches for config from queue.
 -spec do_watch_config() -> atom().
@@ -42,13 +40,16 @@ do_watch_config() ->
     Location = location(),
     Group = group(),
     Hostkey = hostkey(),
-    restart_mq_services(Environment, Location, Group, Hostkey).
+    lager:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
+    restart_mq_services(Environment, Location, Group, Hostkey),
+    ok.
 
 start_config_service(Hostkey) ->
+    lager:debug("Hostkey: ~p",[Hostkey]),
     turtle_service:new(dog_turtle_sup,dog_turtle_sup:config_service_spec(Hostkey)).
 
 stop_config_service() ->
-    turtle_service:stop(dog_turtle_sup,config_service).
+    turtle_service:stop(dog_turtle_sup,dog_config_service).
 
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     lager:debug("Payload: ~p", [Payload]),
