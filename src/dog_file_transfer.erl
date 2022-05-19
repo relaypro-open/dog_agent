@@ -28,21 +28,12 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 -export([
-         subscriber_loop/4,
-         start_file_transfer_service/4,
-         stop_file_transfer_service/0
+         subscriber_loop/4
         ]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
-start_file_transfer_service(Environment, Location, Group, Hostkey) ->
-    turtle_service:new(dog_turtle_sup,
-                       dog_turtle_sup:file_transfer_service_spec(Environment, Location, Group, Hostkey)).
-
-stop_file_transfer_service() ->
-    turtle_service:stop(dog_turtle_sup,dog_file_transfer_service).
-
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
     lager:debug("Message: ~p",[Message]),

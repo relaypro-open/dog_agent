@@ -54,7 +54,7 @@ setup(Targets) ->
     error_logger:tty(false), %% hides stdout from application stops
 
     {ok, Apps} = application:ensure_all_started(liet),
-
+    %application:set_env(liet, debug, user),
     % For meck to run in parallel, cover must be explicitly started first.
     cover:start(),
 

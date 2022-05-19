@@ -2,6 +2,7 @@
 -compile({parse_transform, liet_resource_graph}).
 
 -include_lib("kernel/include/inet.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 %% APPS
 dog_envload() ->
@@ -34,27 +35,43 @@ dog_envconfig(destroy) ->
 
 dog_app() ->
     _ = [
-        dog_os(),
-        timer_nosleep(),
-        file_write_nothing(),      
-        file_read_config_map(),
-        inet_ifs(),
-        turtle_publish(),
-        hackney_deny(),
-        lager_none(),                
-        dog_version(),
-        turtle_noconnect(),
-        dog_turtle_allow(),         
-        dog_turtle_service_allow()
+         dog_os(),
+         timer_nosleep(),
+         file_write_nothing(),
+         file_read_config_map(),
+         inet_ifs(),
+         dog_turtle_allow(),         
+         dog_turtle_service_allow(),
+         turtle_publish(),
+         hackney_deny(),
+         lager_none(),                
+         dog_version(),
+         turtle_noconnect()
         ],                             
 
     {ok, Apps} = application:ensure_all_started(dog),
+    %Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
+    %  certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
+    %   fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
+    %    setup,bear,folsom,exometer_core,gproc,turtle,dog],
+    %lists:foreach(fun(App) ->
+    %                      ?debugFmt("start App: ~p~n",[App]),
+    %                      application:start(App)
+    %              end, Apps),
     meck:reset(dog_os),
-    lager:info("Apps: ~p~n",[Apps]),
+    %?debugFmt("Apps: ~p~n",[Apps]),
     Apps.
 
 dog_app(destroy) ->
-    [ application:stop(X) || X <- lists:reverse([turtle,dog_app()]) ].
+    %Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
+    %  certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
+    %   fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
+    %    setup,bear,folsom,exometer_core,gproc,turtle,dog],
+    %lists:foreach(fun(App) ->
+    %                      ?debugFmt("stop App: ~p~n",[App]),
+    %                      application:stop(App)
+    %              end, lists:reverse(Apps)).
+    [ application:stop(X) || X <- lists:reverse([dog_app()]) ].
 
 dog_ec2_app() ->
     _ = [
@@ -72,20 +89,40 @@ dog_ec2_app() ->
          turtle_noconnect()
         ],
 
-    {ok, Apps} = application:ensure_all_started(dog),
+    %{ok, Apps} = application:ensure_all_started(dog),
+    Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
+      certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
+       fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
+        setup,bear,folsom,exometer_core,gproc,turtle,dog],
+    lists:foreach(fun(App) ->
+                          %?debugFmt("start App: ~p~n",[App]),
+                          application:start(App)
+                  end, Apps),
     meck:reset(dog_os),
     Apps.
 
 dog_ec2_app(destroy) ->
-     [ application:stop(X) || X <- lists:reverse([turtle,dog_ec2_app()]) ].
+    %[ application:stop(X) || X <- lists:reverse([dog_ec2_app()]) ].
+    Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
+      certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
+       fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
+        setup,bear,folsom,exometer_core,gproc,turtle,dog],
+    lists:foreach(fun(App) ->
+                          %?debugFmt("stop App: ~p~n",[App]),
+                          application:stop(App)
+                  end, lists:reverse(Apps)).
 
 lager_none() ->
-    application:load(lager),
+    meck:new(lager,[passthrough]),
+    meck:expect(lager, log, fun(_,_,_) -> ok end),
+    meck:expect(lager, log, fun(_,_,_,_) -> ok end),
+    meck:expect(lager, log, fun(_,_,_,_,_) -> ok end),
+    meck:expect(lager, pr_stacktrace, fun(_,_) -> ok end),
     application:set_env(lager, handlers, [{lager_console_backend, [{level, none}]}]).
 
 lager_none(destroy) ->
     application:unset_env(lager, handlers),
-    application:unload(lager).
+    meck:unload(lager).
 
 lager_app() ->
     _ = lager_none(),
@@ -114,11 +151,88 @@ dog_ips_agent_create_ipsets(destroy) ->
 %% MOCKS
 dog_turtle_allow() ->
     meck:new(dog_turtle_sup, [passthrough]),
-    meck:expect(dog_turtle_sup, init, fun([]) -> {ok,{} } end),
-    meck:expect(dog_turtle_sup, start_link, fun() -> {ok,erlang:self()} end),
-    meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end),
-    meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> {} end),
-    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).
+    meck:expect(dog_turtle_sup, file_transfer_service_spec, fun(_Environment, _Location, _Group, _Hostkey) ->
+      {file_transfer_service,                                                                
+		{turtle_service,start_link,                                                    
+			[#{connection => default,                                                       
+			   consume_queue =>                                                              
+				   <<102,105,108,101,95,116,114,97,110,115,102,101,114,46,4>>,               
+			   declarations =>                                                               
+				   [{'queue.declare',0,                                                      
+						<<102,105,108,101,95,116,114,97,110,115,102,101,114,46,4>>,          
+						false,true,false,true,false,[]},                                     
+					{'queue.bind',0,                                                         
+						<<102,105,108,101,95,116,114,97,110,115,102,101,114,46,4>>,          
+						<<"file_transfer">>,                                                 
+						<<1,46,2,46,3,46,42>>,                                               
+						false,[]},                                                           
+					{'queue.bind',0,                                                         
+						<<102,105,108,101,95,116,114,97,110,115,102,101,114,46,4>>,          
+						<<"file_transfer">>,                                                 
+						<<1,46,2,46,42,46,4>>,                                               
+						false,[]}],                                                          
+			   function => fun dog_file_transfer:subscriber_loop/4,                          
+			   handle_info => fun dog_file_transfer:handle_info/2,                           
+			   init_state => #{},name => file_transfer_service,                              
+			   passive => false,prefetch_count => 1,                                         
+			   subscriber_count => 1}]},                                                     
+		permanent,infinity,supervisor,                                                       
+		[turtle_service]} 
+	end),
+    meck:expect(dog_turtle_sup, config_service_spec, fun(_Hostkey) -> 
+		{config_service,                                                         
+			{turtle_service,start_link,                                          
+				[#{connection => default,consume_queue => <<"config.hostkey">>,  
+				   declarations =>                                               
+					   [{'queue.declare',0,<<"config.hostkey">>,false,true,false,
+							true,false,[]},                                      
+						{'queue.bind',0,<<"config.hostkey">>,<<"config">>,       
+							<<"hostkey">>,false,[]}],                            
+				   function => fun dog_config:subscriber_loop/4,                 
+				   handle_info => fun dog_config_agent:handle_info/2,            
+				   init_state => #{},name => config_service,passive => false,    
+				   prefetch_count => 1,subscriber_count => 1}]},                 
+			permanent,infinity,supervisor,                                       
+			[turtle_service]}                                                    
+	 end),
+    meck:expect(dog_turtle_sup, iptables_service_spec, fun(_Environment, _Location, _Group, _Hostkey) ->
+     {iptables_service,                                                         
+		{turtle_service,start_link,                                            
+			[#{connection => default,                                          
+			   consume_queue => <<"iptables.hostkey">>,                        
+			   declarations =>                                                 
+				   [{'queue.declare',0,<<"iptables.hostkey">>,false,true,false,
+						true,false,[]},                                        
+					{'queue.bind',0,<<"iptables.hostkey">>,<<"ipsets">>,       
+						<<"fanout">>,false,[]},                                
+					{'queue.bind',0,<<"iptables.hostkey">>,<<"iptables">>,     
+						<<"environment.location.*.hostkey">>,false,[]},        
+					{'queue.bind',0,<<"iptables.hostkey">>,<<"iptables">>,     
+						<<"environment.location.group.*">>,false,[]}],         
+			   function => fun dog_iptables:subscriber_loop/4,                 
+			   handle_info => fun dog_iptables_agent:handle_info/2,            
+			   init_state => #{},name => iptables_service,passive => false,    
+			   prefetch_count => 1,subscriber_count => 1}]},                   
+		permanent,infinity,supervisor,                                         
+		[turtle_service]}                                                      
+ 
+	 end),
+    meck:expect(dog_turtle_sup, ips_publisher_spec, fun() -> 
+      {ips_publisher,                                                      
+		{turtle_publisher,start_link,                                    
+			[ips_publisher,default,                                      
+			 [{'queue.declare',0,<<"ips">>,false,true,false,false,false, 
+				  []},                                                   
+			  {'queue.bind',0,<<"ips">>,<<"ips">>,<<"#">>,false,[]}],    
+			 #{confirms => true,passive => false,rpc => false}]},        
+		permanent,5000,worker,                                           
+		[turtle_publisher]}                                              
+    end),
+    meck:expect(dog_turtle_sup, stop_ips_agent, fun() -> ok end),
+    meck:expect(dog_turtle_sup, restart_ips_agent, fun() -> ok end),
+    meck:expect(dog_turtle_sup, restart_mq_services, fun(_,_,_,_) -> ok end),
+    meck:new(turtle_publisher, [passthrough]),
+    meck:expect(turtle_publisher, child_spec, fun(_Environment, _Location, _Group, _Hostkey) -> {} end).
 
 dog_turtle_allow(destroy) ->
     meck:unload(dog_turtle_sup).

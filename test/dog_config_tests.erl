@@ -32,8 +32,9 @@ setup() ->
                        dog_turtle_allow,
                        dog_turtle_service_allow,
                        file_read_config_map, 
-                       file_write_nothing 
+                       file_write_nothing
                       ]).
 
 teardown(Context) ->
+    %?debugFmt("Context: ~p~n",[Context]),
     dog_fixture:teardown(Context).

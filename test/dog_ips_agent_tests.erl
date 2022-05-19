@@ -19,19 +19,6 @@ dog_ips_agent_test_() ->
 
 setup() ->
     dog_fixture:setup([dog_ec2_app]).
-    %dog_fixture:setup([
-    %     dog_liet:dog_os(),
-    %     dog_liet:timer_nosleep(),
-    %     dog_liet:file_write_nothing(),
-    %     dog_liet:file_read_config_map(),
-    %     dog_liet:inet_ifs(),
-    %     dog_liet:dog_turtle_allow(),
-    %     dog_liet:turtle_publish(),
-    %     dog_liet:hackney_ec2(),
-    %     dog_liet:lager_none(),
-    %     dog_liet:dog_version(),
-    %     dog_liet:turtle_noconnect()
-    %                  ]).
 
 teardown(Context) ->
     dog_fixture:teardown(Context).

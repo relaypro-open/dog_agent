@@ -1,9 +1,12 @@
 -module(dog_ips).
 
--export([do_watch_interfaces/1,
-         do_watch_iptables/1, do_keepalive/1,
+-export([
+         do_get_group_routing_key/1,
          do_get_host_routing_key/1,
-         do_get_group_routing_key/1]).
+         do_keepalive/1,
+         do_watch_interfaces/1,
+         do_watch_iptables/1
+        ]).
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
@@ -101,10 +104,11 @@ do_watch_interfaces(StateOld) ->
               [HostnameOld, InterfacesOld]),
       lager:debug("Hostname, Interfaces: ~p, ~p",
               [Hostname, InterfacesNew]),
-      lager:debug("StateNew: ~p", [StateNew]),
-      StateMap = dog_state:to_map(StateNew);
+      lager:debug("StateNew: ~p", [StateNew]);
+      %StateMap = dog_state:to_map(StateNew);
       %dog_interfaces:publish_to_queue(StateMap);
-      true -> ok
+      true -> 
+            ok
     end,
     {ok, StateNew}.
 

@@ -11,10 +11,7 @@
     public_key,
     ssl,
     lager,
-    turtle,
     hackney,
-    amqp_client,
-    rabbit_common,
     jsx,
     base16,
     quickrand,
@@ -22,7 +19,8 @@
     erldocker,
     bbmustache,
     jsn,
-    erldocker
+    erldocker,
+    turtle
    ]},
   {included_applications, []},
   {env,[]},

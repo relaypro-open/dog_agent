@@ -15,8 +15,6 @@
          remove_docker/1,
          remove_quotes/1,
          rule_count/1,
-         start_iptables_service/4,
-         stop_iptables_service/0,
          subscriber_loop/4,
          write_ipv4_ruleset/1,
          write_ipv6_ruleset/1,
@@ -405,13 +403,6 @@ update_iptables6(Ruleset, Retry) ->
                 [R])
       end
     end.
-
-start_iptables_service(Environment,Location,Group,Hostkey) ->
-    turtle_service:new(dog_turtle_sup,dog_turtle_sup:iptables_service_spec(Environment,Location,Group,Hostkey)).
-
-stop_iptables_service() ->
-    turtle_service:stop(dog_turtle_sup,iptables_service).
-
 
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     lager:debug("Payload: ~p", [Payload]),
