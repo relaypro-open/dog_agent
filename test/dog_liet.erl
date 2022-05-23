@@ -71,7 +71,7 @@ dog_app(destroy) ->
     %                      ?debugFmt("stop App: ~p~n",[App]),
     %                      application:stop(App)
     %              end, lists:reverse(Apps)).
-    [ application:stop(X) || X <- lists:reverse([dog_app()]) ].
+    [ application:stop(X) || X <- lists:reverse(dog_app()) ].
 
 dog_ec2_app() ->
     _ = [
@@ -89,28 +89,12 @@ dog_ec2_app() ->
          turtle_noconnect()
         ],
 
-    %{ok, Apps} = application:ensure_all_started(dog),
-    Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
-      certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
-       fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
-        setup,bear,folsom,exometer_core,gproc,turtle,dog],
-    lists:foreach(fun(App) ->
-                          %?debugFmt("start App: ~p~n",[App]),
-                          application:start(App)
-                  end, Apps),
+    {ok, Apps} = application:ensure_all_started(dog),
     meck:reset(dog_os),
     Apps.
 
 dog_ec2_app(destroy) ->
-    %[ application:stop(X) || X <- lists:reverse([dog_ec2_app()]) ].
-    Apps = [sasl,syntax_tools,compiler,goldrush,lager,unicode_util_compat,idna,mimerl,
-      certifi,parse_trans,ssl_verify_fun,metrics,hackney,jsx,base16,quickrand,uuid,
-       fn,erldocker,bbmustache,jsn,xmerl,ranch,recon,rabbit_common,amqp_client,hut,
-        setup,bear,folsom,exometer_core,gproc,turtle,dog],
-    lists:foreach(fun(App) ->
-                          %?debugFmt("stop App: ~p~n",[App]),
-                          application:stop(App)
-                  end, lists:reverse(Apps)).
+    [ application:stop(X) || X <- lists:reverse(dog_ec2_app()) ].
 
 lager_none() ->
     meck:new(lager,[passthrough]),

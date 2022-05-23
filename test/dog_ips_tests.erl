@@ -62,7 +62,7 @@ setup() ->
                                   turtle_publish,
                                   dog_turtle_allow,
                                   dog_turtle_service_allow,
-                                  lager_app,
+                                  lager_none,
                                   file_read_config_map
                                  ]),
 
