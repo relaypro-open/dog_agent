@@ -26,46 +26,31 @@
         {sieve_window, 100},
         {colored, true}
     ]},
-    {thumper, [
-        {substitution_rules,[
-           {fqdn, {dog_interfaces,fqdn,[]}},
-           {environment, {dog_config,environment,[]}},
-           {location, {dog_config,location,[]}},
-           {group, {dog_config,group,[]}},
-           {hostkey, {dog_config,hostkey,[]}}
-        ]},
-        {thumper_svrs, [default, publish]},
-        {brokers, [
-            {default, [
-                {rabbitmq_config,
-                    [
-                        {host, "dog-qa-aws01.phoneboothdev.info"},
-                        {port, 5673},
-                        {api_port, 15672},
-                        {virtual_host, <<"dog">>},
-                        {user, <<"{{ lookup('credstash', 'dog>rabbitmq_username', table='credential-store_mob_qa', region='us-east-1') }}">> },
-                        {password, <<"{{ lookup('credstash', 'dog>rabbitmq_password', table='credential-store_mob_qa', region='us-east-1') }}">> },
-                        {ssl_options, [{cacertfile, "/var/consul/data/pki/certs/ca.crt"},
-                                       {certfile, "/var/consul/data/pki/certs/server.crt"},
-                                       {keyfile, "/var/consul/data/pki/private/server.key"},
-                                       {verify, verify_peer},
-                                       {server_name_indication, disable},
-                                       {fail_if_no_peer_cert, true}
-                                      ]},
-                     {broker_config,
-                        {thumper_tx, {callback, {dog_config, broker_config, []}}}
-                     }
-                    ]}]},
-            {publish, [{rabbitmq_config, default}]}
-        ]},
-        {queuejournal,
-            [
-                {enabled, false},
-                {dir, "/opt/dog/queuejournal"},
-                {memqueue_max, 10000},
-                {check_journal, true}
-            ]
-        }
+    {turtle, [
+        {connection_config, [
+            #{
+                conn_name => default,
+
+                username => "{{ lookup('credstash', 'dog>rabbitmq_username', table='credential-store_mob_qa', region='us-east-1') }}",
+                password => "{{ lookup('credstash', 'dog>rabbitmq_password', table='credential-store_mob_qa', region='us-east-1') }}",
+                virtual_host => "dog",
+                ssl_options => [
+                               {cacertfile, "/var/consul/data/pki/certs/ca.crt"},
+                               {certfile, "/var/consul/data/pki/certs/server.crt"},
+                               {keyfile, "/var/consul/data/pki/private/server.key"},
+                               {verify, verify_peer},
+                               {server_name_indication, disable},
+                               {fail_if_no_peer_cert, true}
+                              ],
+                deadline => 300000,
+                connections => [
+                    {main, [
+                      {"dog-qa-aws01.phoneboothdev.info", 5673 } 
+                    ]}
+                ]
+            }
+        ]
+    }
     ]},
     {erldocker, [
         {docker_http, <<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>}
