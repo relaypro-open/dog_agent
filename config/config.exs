@@ -34,13 +34,6 @@ config :dog,
         enforcing: true,
         use_ipsets: true
 
-#config :sync, 
-#        growl: :none,
-#        log: [:all],
-#        non_descendants: :fix,
-#        executable: :auto,
-#        whitelisted_modules: [],
-#        excluded_modules: []
 # Stop lager redirecting :error_logger messages
 config :lager, :error_logger_redirect, false
 
@@ -71,47 +64,6 @@ config :lager,
 #        sieve_window: 100,
 #        colored: true
 
-#config :thumper, 
-#        substitution_rules: [
-#           {:fqdn, {:dog_interfaces,:fqdn,[]}},
-#           {:environment, {:dog_config,:environment,[]}},
-#           {:location, {:dog_config,:location,[]}},
-#           {:group, {:dog_config,:group,[]}},
-#           {:hostkey, {:dog_config,:hostkey,[]}}
-#        ],
-#        thumper_svrs: [:default, :publish],
-#        brokers: [
-#            {:default, [
-#                {:rabbitmq_config,
-#                   [
-#                        {:host, "dog-ubuntu-server.lxd"},
-#                        {:port, 5673},
-#                        {:api_port, 15672},
-#                        {:virtual_host, <<"dog">>},
-#                        {:user, <<"dog">>},
-#                        {:password, <<"327faf06-c3f5-11e7-9765-7831c1be5b34">>},
-#                     {:ssl_options, [
-#                                       {:cacertfile, "/var/consul/data/pki/certs/ca.crt"},
-#                                       {:certfile, "/var/consul/data/pki/certs/server.crt"},
-#                                       {:keyfile, "/var/consul/data/pki/private/server.key"},
-#                                       {:verify, :verify_peer},
-#                                       {:server_name_indication, :disable},
-#                                       {:fail_if_no_peer_cert, true}
-#                                      ]},
-#                     {:broker_config,
-#                        {:thumper_tx, {:callback, {:dog_config, :broker_config, []}}}
-#                     }
-#                   ]}]},
-#            {:publish, [{:rabbitmq_config, :default}]}
-#            ],
-#        queuejournal:
-#            [
-#                {:enabled, false},
-#                {:dir, "/opt/dog/queuejournal"},
-#                {:memqueue_max, 10000},
-#                {:check_journal, true}
-#            ]
-
 config :turtle,
         connection_config: [
             %{
@@ -138,38 +90,3 @@ config :turtle,
 
 config :erldocker,
 docker_http: <<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>
-
-#config :thumper,
-#  substitution_rules: [
-#    cluster: {:edb, :get_cluster_id, []}
-#  ],
-#  thumper_svrs: [:default, :publish],
-#  brokers: [
-#    default: [
-#      rabbitmq_config: [
-#        host: 'dog-ubuntu-server.lxd',
-#        port: 5673,
-#        api_port: 15672,
-#        virtual_host: "dog",
-#        user: "dog_trainer",
-#        password: "327faf06-c3f5-11e7-9765-7831c1be5b34",
-#        ssl_options: [
-#          cacertfile: '/var/consul/data/pki/certs/ca.crt',
-#          certfile: '/var/consul/data/pki/certs/server.crt',
-#          keyfile: '/var/consul/data/pki/private/server.key',
-#          verify: :verify_peer,
-#          server_name_indication: :disable,
-#          fail_if_no_peer_cert: true
-#        ],
-#        broker_config: {:thumper_tx, "/opt/dog_trainer_ex/priv/broker.tx" }
-#      ]
-#    ],
-#    publish: [rabbitmq_config: :default]
-#  ],
-#  queuejournal: [
-#    enabled: true,
-#    dir: '/opt/dog_trainer_ex/queuejournal',
-#    memqueue_max: 10000,
-#    check_journal: true
-#  ]
-#
