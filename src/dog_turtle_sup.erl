@@ -34,7 +34,7 @@ init([]) ->
 
 child_specs() ->
     ChildSpecs = [
-         %ips_publisher_spec()
+         ips_publisher_spec()
                  ],
     {ok, { {one_for_all, 10, 60}, ChildSpecs} }.
 
