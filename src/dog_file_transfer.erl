@@ -37,16 +37,17 @@
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
     lager:debug("Message: ~p",[Message]),
-    Filename = proplists:get_value(file_name, Message),
+    Filename = dog_common:to_list(proplists:get_value(file_name, Message)),
     Command = proplists:get_value(command, Message),
     UserData = proplists:get_value(user_data, Message),
-    FilePath = "/tmp" ++ Filename,
+    FilePath = "/tmp/" ++ Filename,
     lager:debug("Command: ~p",[Command]),
     case Command of
         send_file ->
             FileTotalBlocks = proplists:get_value(total_blocks, Message),
             FileCurrentBlock = proplists:get_value(current_block, Message),
             FileBlock = maps:get(file_block, UserData),
+            lager:debug("FilePath: ~p",[FilePath]),
             lager:debug("Filename: ~p, Block ~p of ~p",[Filename,FileCurrentBlock,FileTotalBlocks]),
             %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
             {ok,IoDevice} = case FileCurrentBlock of
