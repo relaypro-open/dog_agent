@@ -40,7 +40,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     Filename = dog_common:to_list(proplists:get_value(file_name, Message)),
     Command = proplists:get_value(command, Message),
     UserData = proplists:get_value(user_data, Message),
-    FilePath = "/tmp/" ++ Filename,
+    FilePath = "/tmp/dog/" ++ Filename,
     lager:debug("Command: ~p",[Command]),
     case Command of
         send_file ->
@@ -96,6 +96,15 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                 Result = os:cmd(FilePath, #{ max_size => 10000}),
                 lager:debug("Result: ~p",[Result]),
             %{ack,State};
+                {reply, <<"text/json">>, jsx:encode(Result), State}
+            after
+                {reply, <<"text/json">>, jsx:encode(error), State}
+            end;
+        execute_command ->
+            ExecuteCommand = proplists:get_value(execute_command, Message),
+            try
+                Result = os:cmd(ExecuteCommand, #{ max_size => 500}),
+                lager:debug("Result: ~p",[Result]),
                 {reply, <<"text/json">>, jsx:encode(Result), State}
             after
                 {reply, <<"text/json">>, jsx:encode(error), State}
