@@ -106,6 +106,13 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     %{ack,State};
                     {reply, <<"text/json">>, jsx:encode(Result), State}
             end;
+        fetch_file ->
+            case file:read_file(Filename) of
+                {ok,Bytes} ->
+                    {reply, <<"application/octet-stream">>, Bytes, State};
+                {error, Reason} ->
+                    {reply, <<"text/json">>, jsx:encode({error, Reason}), State}
+            end;
         execute_command ->
             ExecuteCommandRaw = proplists:get_value(execute_command, Message),
             UseShell = proplists:get_value(use_shell, Message, false),
