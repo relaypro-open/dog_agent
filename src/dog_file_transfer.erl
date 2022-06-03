@@ -4,7 +4,7 @@
 -include("dog.hrl").
 -include_lib("kernel/include/file.hrl").
 
--define(BLOCK_SIZE, 4096).
+-define(BLOCK_SIZE, 131072).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -68,28 +68,27 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                         1 when FileTotalBlocks =:= 1 ->
                             file:pwrite(IoDevice,0,FileBlock),
                             file:close(IoDevice),
-                            %{ack,State};
-                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
+                            {ack,State};
+                            %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                         1 when FileTotalBlocks > 1 ->
                             file:pwrite(IoDevice,0,FileBlock),
-                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
-                            %{ack,State};
+                            %{reply, <<"text/json">>, jsx:encode(block_ok), State};
+                            {ack,State};
                         N when N >=  FileTotalBlocks ->
                             %file:write(IoDevice,FileBlock),
                             StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
                             lager:debug("StartByte: ~p",[StartByte]),
                             file:pwrite(IoDevice,StartByte,FileBlock),
                             file:close(IoDevice),
-                            %{ack,State};
-                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
+                            {ack,State};
+                            %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                         _ ->
                             %file:write(IoDevice,FileBlock),
                             StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
                             lager:debug("StartByte: ~p",[StartByte]),
                             file:pwrite(IoDevice,StartByte,FileBlock),
-                            %{ack,State}
-                            {reply, <<"text/json">>, jsx:encode(file_ok), State}
-                            %{remove, State}
+                            {ack,State}
+                            %{reply, <<"text/json">>, jsx:encode(file_ok), State}
                 end    
             end;
         delete_file ->
