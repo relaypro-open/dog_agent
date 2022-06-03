@@ -40,63 +40,72 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     Filename = dog_common:to_list(proplists:get_value(file_name, Message)),
     Command = proplists:get_value(command, Message),
     UserData = proplists:get_value(user_data, Message),
-    FilePath = "/tmp/dog/" ++ Filename,
     lager:debug("Command: ~p",[Command]),
     case Command of
         send_file ->
-            %case filename:safe_relative_path(FilePath) of
-            %    unsafe ->
-            %        lager:debug("Unsafe FilePath"),
-            %        {reply, <<"text/json">>, jsx:encode(file_bad), State};
-            %    _ ->
-                FileTotalBlocks = proplists:get_value(total_blocks, Message),
-                FileCurrentBlock = proplists:get_value(current_block, Message),
-                FileBlock = maps:get(file_block, UserData),
-                lager:debug("FilePath: ~p",[FilePath]),
-                lager:debug("Filename: ~p, Block ~p of ~p",[Filename,FileCurrentBlock,FileTotalBlocks]),
-                %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
-                {ok,IoDevice} = case FileCurrentBlock of
-                    1 ->
-                        filelib:ensure_dir(filename:dirname(FilePath) ++ "/"),
-                        file:open(FilePath,[write,raw]);
-                    _ ->
-                        %file:open(FilePath,[append,raw])
-                        file:open(FilePath,[write,read,raw])
-                end,
-                case FileCurrentBlock of
-                    1 when FileTotalBlocks =:= 1 ->
-                        file:pwrite(IoDevice,0,FileBlock),
-                        file:close(IoDevice),
-                        %{ack,State};
-                        {reply, <<"text/json">>, jsx:encode(block_ok), State};
-                    1 when FileTotalBlocks > 1 ->
-                        file:pwrite(IoDevice,0,FileBlock),
-                        {reply, <<"text/json">>, jsx:encode(block_ok), State};
-                        %{ack,State};
-                    N when N >=  FileTotalBlocks ->
-                        %file:write(IoDevice,FileBlock),
-                        StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
-                        lager:debug("StartByte: ~p",[StartByte]),
-                        file:pwrite(IoDevice,StartByte,FileBlock),
-                        file:close(IoDevice),
-                        %{ack,State};
-                        {reply, <<"text/json">>, jsx:encode(block_ok), State};
-                    _ ->
-                        %file:write(IoDevice,FileBlock),
-                        StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
-                        lager:debug("StartByte: ~p",[StartByte]),
-                        file:pwrite(IoDevice,StartByte,FileBlock),
-                        %{ack,State}
-                        {reply, <<"text/json">>, jsx:encode(file_ok), State}
-                        %{remove, State}
-                %end    
+            FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
+            FilePath = "/tmp/dog/" ++ FilenameClean,
+            case FilenameClean of
+                unsafe ->
+                    lager:debug("Unsafe FilePath"),
+                    {reply, <<"text/json">>, jsx:encode(file_bad), State};
+                _ ->
+                    FileTotalBlocks = proplists:get_value(total_blocks, Message),
+                    FileCurrentBlock = proplists:get_value(current_block, Message),
+                    FileBlock = maps:get(file_block, UserData),
+                    lager:debug("FilePath: ~p",[FilePath]),
+                    lager:debug("Filename: ~p, Block ~p of ~p",[Filename,FileCurrentBlock,FileTotalBlocks]),
+                    %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
+                    {ok,IoDevice} = case FileCurrentBlock of
+                        1 ->
+                            filelib:ensure_dir(filename:dirname(FilePath) ++ "/"),
+                            file:open(FilePath,[write,raw]);
+                        _ ->
+                            %file:open(FilePath,[append,raw])
+                            file:open(FilePath,[write,read,raw])
+                    end,
+                    case FileCurrentBlock of
+                        1 when FileTotalBlocks =:= 1 ->
+                            file:pwrite(IoDevice,0,FileBlock),
+                            file:close(IoDevice),
+                            %{ack,State};
+                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
+                        1 when FileTotalBlocks > 1 ->
+                            file:pwrite(IoDevice,0,FileBlock),
+                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
+                            %{ack,State};
+                        N when N >=  FileTotalBlocks ->
+                            %file:write(IoDevice,FileBlock),
+                            StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
+                            lager:debug("StartByte: ~p",[StartByte]),
+                            file:pwrite(IoDevice,StartByte,FileBlock),
+                            file:close(IoDevice),
+                            %{ack,State};
+                            {reply, <<"text/json">>, jsx:encode(block_ok), State};
+                        _ ->
+                            %file:write(IoDevice,FileBlock),
+                            StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
+                            lager:debug("StartByte: ~p",[StartByte]),
+                            file:pwrite(IoDevice,StartByte,FileBlock),
+                            %{ack,State}
+                            {reply, <<"text/json">>, jsx:encode(file_ok), State}
+                            %{remove, State}
+                end    
             end;
         delete_file ->
-            lager:debug("FilePath: ~p",[FilePath]),
-            Result = file:delete(FilePath),
-            lager:debug("Result: ~p",[Result]),
-            %{ack,State};
-            {reply, <<"text/json">>, jsx:encode(Result), State};
+            FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
+            FilePath = "/tmp/dog/" ++ FilenameClean,
+            case FilenameClean of
+                unsafe ->
+                    lager:debug("Unsafe FilePath"),
+                    {reply, <<"text/json">>, jsx:encode(file_bad), State};
+                _ ->
+                    lager:debug("FilePath: ~p",[FilePath]),
+                    Result = file:delete(FilePath),
+                    lager:debug("Result: ~p",[Result]),
+                    %{ack,State};
+                    {reply, <<"text/json">>, jsx:encode(Result), State}
+            end;
         execute_command ->
             ExecuteCommandRaw = proplists:get_value(execute_command, Message),
             UseShell = proplists:get_value(use_shell, Message, false),
