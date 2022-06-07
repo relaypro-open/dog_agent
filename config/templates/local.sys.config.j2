@@ -52,7 +52,7 @@
         {docker_http, <<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>}
     ]},
     {erlexec, [
-        root, {user, "dog"}, {limit_users, ["root","dog"]}
+        {user, "dog"}, {limit_users, ["root","dog"]}
     ]}
 ].
         
