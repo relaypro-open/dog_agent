@@ -4,8 +4,6 @@
 -include("dog.hrl").
 -include_lib("kernel/include/file.hrl").
 
--define(BLOCK_SIZE, 131072).
-
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
@@ -52,9 +50,10 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                 _ ->
                     FileTotalBlocks = proplists:get_value(total_blocks, Message),
                     FileCurrentBlock = proplists:get_value(current_block, Message),
+                    MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
                     FileBlock = maps:get(file_block, UserData),
                     lager:debug("FilePath: ~p",[FilePath]),
-                    lager:debug("Filename: ~p, Block ~p of ~p",[Filename,FileCurrentBlock,FileTotalBlocks]),
+                    lager:debug("Filename: ~p, MaxBlockSizeBytes: ~p, Block ~p of ~p",[Filename,MaxBlockSizeBytes,FileCurrentBlock,FileTotalBlocks]),
                     %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
                     {ok,IoDevice} = case FileCurrentBlock of
                         1 ->
@@ -76,7 +75,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                             {ack,State};
                         N when N >=  FileTotalBlocks ->
                             %file:write(IoDevice,FileBlock),
-                            StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
+                            StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
                             lager:debug("StartByte: ~p",[StartByte]),
                             file:pwrite(IoDevice,StartByte,FileBlock),
                             file:close(IoDevice),
@@ -84,7 +83,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                             %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                         _ ->
                             %file:write(IoDevice,FileBlock),
-                            StartByte = (FileCurrentBlock - 1) * ?BLOCK_SIZE,
+                            StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
                             lager:debug("StartByte: ~p",[StartByte]),
                             file:pwrite(IoDevice,StartByte,FileBlock),
                             {ack,State}
