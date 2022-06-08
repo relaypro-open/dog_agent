@@ -99,10 +99,24 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     {reply, <<"text/json">>, jsx:encode(file_bad), State};
                 _ ->
                     lager:debug("FilePath: ~p",[FilePath]),
-                    Result = file:delete(FilePath),
-                    lager:debug("Result: ~p",[Result]),
-                    %{ack,State};
-                    {reply, <<"text/json">>, jsx:encode(Result), State}
+                    case filelib:is_dir(FilePath) of
+                        true ->
+                            case file:del_dir(FilePath) of
+                                         {error,Reason} ->
+                                            {reply, <<"text/json">>, jsx:encode([{error,Reason}])};
+                                         ok ->
+                                            %{ack,State};
+                                            {reply, <<"text/json">>, jsx:encode([ok]), State}
+                                     end;
+                        false ->
+                            case file:delete(FilePath) of
+                                         {error,Reason} ->
+                                            {reply, <<"text/json">>, jsx:encode([{error,Reason}])};
+                                         ok ->
+                                            %{ack,State};
+                                            {reply, <<"text/json">>, jsx:encode([ok]), State}
+                                     end
+                    end
             end;
         fetch_file ->
             case file:read_file(Filename) of
