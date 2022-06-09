@@ -119,6 +119,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     end
             end;
         fetch_file ->
+            lager:debug("Filename: ~p",[Filename]),
             case file:read_file(Filename) of
                 {ok,Bytes} ->
                     {reply, <<"application/octet-stream">>, Bytes, State};
