@@ -124,7 +124,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                 {ok,Bytes} ->
                     {reply, <<"application/octet-stream">>, Bytes, State};
                 {error, Reason} ->
-                    {reply, <<"text/json">>, jsx:encode({error, Reason}), State}
+                    {reply, <<"text/json">>, jsx:encode([{error, Reason}]), State}
             end;
         execute_command ->
             ExecuteCommandRaw = proplists:get_value(execute_command, Message),
