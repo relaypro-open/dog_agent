@@ -4,6 +4,8 @@
 -include("dog.hrl").
 -include_lib("kernel/include/file.hrl").
 
+-define(SANDBOX_FILE_ROOT, "/").
+
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
@@ -41,8 +43,9 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     lager:debug("Command: ~p",[Command]),
     case Command of
         send_file ->
+            lager:debug("send_file"),
             FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
-            FilePath = "/tmp/dog/" ++ FilenameClean,
+            FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
             case FilenameClean of
                 unsafe ->
                     lager:debug("Unsafe FilePath"),
@@ -92,7 +95,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
             end;
         delete_file ->
             FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
-            FilePath = "/tmp/dog/" ++ FilenameClean,
+            FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
             case FilenameClean of
                 unsafe ->
                     lager:debug("Unsafe FilePath"),
@@ -127,7 +130,9 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     {reply, <<"text/json">>, jsx:encode([{error, Reason}]), State}
             end;
         execute_command ->
-            ExecuteCommandRaw = proplists:get_value(execute_command, Message),
+            ExecuteCommandBase64 = proplists:get_value(execute_command, Message),
+            ExecuteCommandRaw = base64:decode(ExecuteCommandBase64),
+            lager:debug("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
             UseShell = proplists:get_value(use_shell, Message, false),
             RunAsUser = proplists:get_value(user, Message, "dog"),
             ExecuteCommand = case UseShell of                                          
@@ -136,11 +141,22 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                                  false ->                                                
                                      string:split(ExecuteCommandRaw," ")
                             end,                                                    
-            case exec:run(ExecuteCommand, [sync, stdout, stderr, {user, RunAsUser}]) of
+            Result = exec:run(ExecuteCommand, [pty,sync, stdout, stderr, {user, RunAsUser}]),
+            lager:debug("Result: ~p",[Result]),
+            case Result of
                 {ok,[{stdout,StdOut}]} ->
-                    {reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State};
+                    case length(StdOut) >= 1 of
+                        true ->
+                            {reply, <<"text/json">>, jsx:encode([{ok, lists:last(StdOut)}]), State};
+                        false ->
+                            {reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State}
+                    end;
+                {ok,[]} ->
+                    {reply, <<"text/json">>, jsx:encode([{ok, []}]), State};
                 {error,[{exit_status,_ExitStatus},{stderr,StdErr}]} ->
-                    {reply, <<"text/json">>, jsx:encode([{error, StdErr}]), State}
+                    {reply, <<"text/json">>, jsx:encode([{error, StdErr}]), State};
+                UnknownResponse ->
+                    lager:debug("UnknownResponse: ~p",[UnknownResponse])
             end;
         _ ->
             lager:error("Unknown command: ~p",[Command]),
