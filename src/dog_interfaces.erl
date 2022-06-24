@@ -10,6 +10,8 @@
         ec2_public_ipv4/0, 
         ec2_security_group_ids/0,
         ec2_owner_id/0,
+        ec2_instance_tags/0,
+        ec2_instance_tag/1,
         fqdn/0,
         get_environment_key/0, 
         get_fqdn/0,
@@ -120,7 +122,7 @@ is_docker_instance() ->
   dog_docker:is_docker_instance().
 
 
--spec ec2_info() -> {Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string()}.
+-spec ec2_info() -> {Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string(), Ec2InstanceTags :: map()}.
 ec2_info() ->
     case is_ec2_instance() of
         true ->
@@ -128,14 +130,16 @@ ec2_info() ->
              ec2_instance_id(),
              ec2_availability_zone(),
              ec2_security_group_ids(),
-             ec2_owner_id()
+             ec2_owner_id(),
+             ec2_instance_tags()
              };
         false ->
             {
              <<"">>,
              <<"">>,
              <<"">>,
-             <<"">>
+             <<"">>,
+             #{}
             }
     end.
 
@@ -469,3 +473,55 @@ ip_to_queue() ->
         <<"updatetype">> => UpdateType
     },
     publish_to_queue(Config).
+
+-spec ec2_instance_tag(Tag :: string()) -> list() | [].
+ec2_instance_tag(Tag) ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/tags/instance/" ++ Tag,
+    Method = get,
+    Headers = [],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _} ->
+            [];
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,Body} = hackney:body(ClientRef),
+                    {Tag, Body}
+                        %case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+                        %    true ->
+                        %        [];
+                        %    false ->
+                        %        lists:flatten(Results)
+                        %end
+            end
+    end.
+
+-spec ec2_instance_tags() -> list() | [].
+ec2_instance_tags() ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/tags/instance/",
+    Method = get,
+    Headers = [],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            lager:error("Error getting ec2_instance_tags"),
+            [];
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,Body} = hackney:body(ClientRef),
+                    TagNames = re:split(Body, "\n", [{return, list},trim]),
+                    TagNamesStrings = [list_to_binary(Tn) || Tn <- TagNames],
+                    Results = lists:map(fun(Tag) -> 
+                        ec2_instance_tag(Tag)
+                    end, TagNamesStrings),
+                    maps:from_list(Results);
+                _ ->
+                    lager:error("Error getting ec2_instance_tags"),
+                    []
+            end
+    end.
+

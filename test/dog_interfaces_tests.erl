@@ -10,7 +10,7 @@ dog_interfaces_test_() ->
              [
                 ?_assertMatch(<<"ec2">>, dog_interfaces:get_provider())
               , ?_assertMatch("availability-zone", dog_interfaces:ec2_availability_zone())
-              , ?_assertMatch({"instance-id", "availability-zone", [<<"security-group">>], <<"owner-id">>}, dog_interfaces:ec2_info())
+              , ?_assertMatch({"instance-id", "availability-zone", [<<"security-group">>], <<"owner-id">>, #{}}, dog_interfaces:ec2_info())
 
               , ?_assertMatch("instance-id",       dog_interfaces:ec2_instance_id())
               , ?_assertEqual([dog_fixture:mac()], dog_interfaces:ec2_macs())

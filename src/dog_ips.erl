@@ -56,7 +56,7 @@ do_watch_iptables(State) ->
 do_watch_interfaces(StateOld) ->
     %lager:info("State0: ~p", [State0]),
     Provider = dog_state:get_provider(StateOld),
-    {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId} = dog_interfaces:ec2_info(),
+    {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
     HostnameOld = dog_state:get_hostname(StateOld),
     InterfacesOld = dog_state:get_interfaces(StateOld),
     {ok, InterfacesNew} =
@@ -96,7 +96,8 @@ do_watch_interfaces(StateOld) ->
                     <<"name">> => Hostname,
                     <<"provider">> => Provider,
                     <<"updatetype">> => UpdateType,
-                    <<"version">> => Version
+                    <<"version">> => Version,
+                    <<"ec2_instance_tags">> => Ec2InstanceTags
                                    }),
     case InterfacesOld == InterfacesNew of
       false ->
