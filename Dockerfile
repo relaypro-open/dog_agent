@@ -48,6 +48,13 @@ RUN mkdir -p /var/log/dog
 # Install the released application
 COPY --from=compile /data/_build/default/rel/dog /opt/dog
 RUN chmod 4555 /opt/dog/lib/erlexec-1.20.1/priv/x86_64-pc-linux-gnu/exec-port
+RUN mkdir -p /home/dog/bin
+RUN cp /sbin/ipset /home/dog/bin/ipset
+RUN cp /usr/sbin/iptables-save /home/dog/bin/
+RUN cp /usr/sbin/ip6tables-save /home/dog/bin/
+RUN cp /usr/sbin/iptables-restore /home/dog/bin/
+RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
+
 RUN ls -latr /opt/dog
 
 # Expose relevant ports
