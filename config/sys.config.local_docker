@@ -1,0 +1,40 @@
+[{dog,[{enforcing,true},{use_ipsets,true},{version,"docker_local"}]},
+ {kernel,[{inet_dist_use_interface,{127,0,0,1}}]},
+ {lager,
+     [{handlers,
+          [{lager_console_backend,[{level,info}]},
+           {lager_file_backend,
+               [{file,"/var/log/dog/error.log"},{level,error}]},
+           {lager_file_backend,
+               [{file,"/var/log/dog/console.log"},{level,info}]}]},
+      {crash_log,"/var/log/dog/crash.log"},
+      {tracefiles,[]},
+      {async_threshold,10000},
+      {sieve_threshold,5000},
+      {sieve_window,100},
+      {colored,true}]},
+ {sync,
+     [{growl,none},
+      {log,[all]},
+      {non_descendants,fix},
+      {executable,auto},
+      {whitelisted_modules,[]},
+      {excluded_modules,[]}]},
+    {turtle, [
+        {connection_config, [
+            #{
+                conn_name => default,
+
+                username => "guest",
+                password => "guest",
+                virtual_host => "dog",
+                deadline => 300000,
+                connections => [
+                    {main, [
+                      {"rabbitmq", 5672 } 
+                    ]}
+                ]
+            }
+        ]}
+    ]}
+].
