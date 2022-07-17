@@ -36,5 +36,31 @@
                 ]
             }
         ]}
-    ]}
+    ]},
+ {thumper,
+     [{substitution_rules,
+          [{fqdn,{dog_interfaces,fqdn,[]}},
+           {environment,{dog_config,environment,[]}},
+           {location,{dog_config,location,[]}},
+           {group,{dog_config,group,[]}},
+           {hostkey,{dog_config,hostkey,[]}}]},
+      {thumper_svrs,[default,publish]},
+      {brokers,
+          [{default,
+               [{rabbitmq_config,
+                    [{host,"rabbitmq"},
+                     {port,5672},
+                     {api_port,15672},
+                     {virtual_host,<<"dog">>},
+                     {user,<<"guest">>},
+                     {password,<<"guest">>},
+                     {broker_config,
+                         {thumper_tx,
+                             {callback,{dog_config,broker_config,[]}}}}]}]},
+           {publish,[{rabbitmq_config,default}]}]},
+      {queuejournal,
+          [{enabled,false},
+           {dir,"/opt/dog/queuejournal"},
+           {memqueue_max,10000},
+           {check_journal,true}]}]}
 ].
