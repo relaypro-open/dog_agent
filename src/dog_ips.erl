@@ -4,8 +4,8 @@
          do_get_group_routing_key/1,
          do_get_host_routing_key/1,
          do_keepalive/1,
-         do_watch_interfaces/1,
-         do_watch_iptables/1
+         do_watch_interfaces/1%,
+         %do_watch_iptables/1
         ]).
 
 %% ------------------------------------------------------------------
@@ -30,22 +30,22 @@ do_get_host_routing_key(State) ->
     RoutingKey = dog_state:to_host_routing_key(State),
     {ok, RoutingKey}.
 
-%% @doc watches queue for iptables updates.
-%-spec do_watch_iptables(State :: dog_state()) -> {ok, State :: dog_state()}.
--spec do_watch_iptables(State ::
-                dog_state:dog_state()) -> no_return().
-
-do_watch_iptables(State) ->
-    %lager:debug("do_watch_iptables"),
-    %{ok, GroupRoutingKey} = do_get_group_routing_key(State),
-    %lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
-    %ok =
-    %dog_iptables:ensure_iptables_consumer(GroupRoutingKey),
-    %{ok, HostRoutingKey} = do_get_host_routing_key(State),
-    %lager:debug("HostRoutingKey: ~p", [HostRoutingKey]),
-    %ok =
-    %dog_iptables:ensure_iptables_consumer(HostRoutingKey),
-    {ok, State}.
+%%% @doc watches queue for iptables updates.
+%%-spec do_watch_iptables(State :: dog_state()) -> {ok, State :: dog_state()}.
+%-spec do_watch_iptables(State ::
+%                dog_state:dog_state()) -> no_return().
+%
+%do_watch_iptables(State) ->
+%    %lager:debug("do_watch_iptables"),
+%    %{ok, GroupRoutingKey} = do_get_group_routing_key(State),
+%    %lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
+%    %ok =
+%    %dog_iptables:ensure_iptables_consumer(GroupRoutingKey),
+%    %{ok, HostRoutingKey} = do_get_host_routing_key(State),
+%    %lager:debug("HostRoutingKey: ~p", [HostRoutingKey]),
+%    %ok =
+%    %dog_iptables:ensure_iptables_consumer(HostRoutingKey),
+%    {ok, State}.
 
 %% @doc watches for IP updates, publishes to queue.
 -spec do_watch_interfaces(State ::

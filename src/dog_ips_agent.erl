@@ -104,8 +104,10 @@ init(_Args) ->
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
     NewState = dog_config_agent:get_state(),
-    {ok, State} = dog_ips:do_watch_iptables(NewState),
-    {ok, State}.
+    lager:error("NewState: ~p",[NewState]),
+    lager:error("hostname: ~p",[dog_state:get_hostname(NewState)]),
+    %{ok, State} = dog_ips:do_watch_iptables(NewState),
+    {ok, NewState}.
 
 %
 %%----------------------------------------------------------------------
@@ -127,16 +129,16 @@ handle_call(read_hash, _From, State) ->
     Hash = dog_ipset:read_hash(), {reply, Hash, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State};
-handle_call(watch_iptables, _From, _State) ->
-    %{ok, NewState} = dog_ips:do_watch_iptables(State),
-    NewState = dog_config_agent:get_state(),
-    {ok, _} = dog_ips:do_watch_iptables(NewState),
-    {reply, NewState};
-handle_call(watch_interfaces, _From, State) ->
-    lager:debug("State: ~p", [State]),
-    {ok, NewState} = dog_ips:do_watch_interfaces(State),
-    erlang:send_after(10000, self(), watch_interfaces),
-    {reply, NewState};
+%handle_call(watch_iptables, _From, _State) ->
+%    %{ok, NewState} = dog_ips:do_watch_iptables(State),
+%    NewState = dog_config_agent:get_state(),
+%    {ok, _} = dog_ips:do_watch_iptables(NewState),
+%    {reply, NewState};
+%handle_call(watch_interfaces, _From, State) ->
+%    lager:debug("State: ~p", [State]),
+%    {ok, NewState} = dog_ips:do_watch_interfaces(State),
+%    erlang:send_after(10000, self(), watch_interfaces),
+%    {reply, NewState};
 handle_call(keepalive, _From, State) ->
     {ok, NewState} = dog_ips:do_keepalive(State),
     KeepalivePollSeconds = application:get_env(dog, keepalive_poll_seconds, 60) * 1000,
@@ -175,6 +177,12 @@ handle_cast(Msg, State) ->
 
 handle_info(sub, State) ->
     lager:debug("sub: ~p", [State]), {noreply, State};
+handle_info(watch_interfaces, State) ->
+    lager:debug("State: ~p", [State]),
+    {ok, NewState} = dog_ips:do_watch_interfaces(State),
+    WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
+    erlang:send_after(WatchInterfacesPollMilliseconds, self(), watch_interfaces),
+    {noreply, NewState};
 handle_info(Info, State) ->
     lager:error("unknown_message: Info: ~p, State: ~p",
         [Info, State]),
