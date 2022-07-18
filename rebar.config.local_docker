@@ -1,0 +1,179 @@
+{erl_opts, [debug_info, {parse_transform, lager_transform}, nowarn_export_all]}.
+{deps, [
+    {lager, ".*", {git, "https://github.com/erlang-lager/lager.git", {tag, "3.9.2"}}},
+    {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git", {tag, "v2.8.3"}}},
+    {hackney, ".*", {git, "https://github.com/benoitc/hackney.git", {tag, "1.18.1"}}},
+    {base16, {git, "https://github.com/goj/base16.git", {tag, "1.0.0"}}},
+    {uuid, "2.0.0", {pkg, uuid_erl}},
+    %{uuid, {git, "https://github.com/okeuday/uuid.git", {tag, "2.0.4"}}},
+    {erldocker, ".*", {git, "https://github.com/Phonebooth/erldocker.git", {branch, "master"}}},
+    {turtle, {git, "https://github.com/relaypro-open/turtle.git", {branch, "feature/exometer_1.6.1"} }},
+    {jsn, "2.1.4"},
+    {bbmustache, "1.11.0"}
+]}.
+
+{minimum_otp_vsn, "23.0"}.
+
+{escript_emu_args, "%%! -escript main dog\n -config /opt/dog/config/sys.config -home /home/dog -boot_var ERTS_LIB_DIR /opt/dog/_build/default/lib"}.
+
+{relx, [
+        {release, 
+          {dog, "v1.4" }, 
+	  [dog]},
+        {dev_mode, false},
+        {sys_config, "config/sys.config"},
+        {include_erts, true},
+        {extended_start_script, true},
+        {extended_start_script_hooks, [
+          {post_start, [
+            {pid, "/var/run/dog/dog.pid"}
+          ]}
+        ]},
+        {overlay, [
+            {mkdir, "./log"},
+            {mkdir, "./queuejournal"},
+            %{copy, "dog_start.sh", "./dog_start.sh"},
+            %{copy, "dog_stop.sh", "./dog_stop.sh"},
+            {mkdir, "./scripts"},
+            {copy, "scripts/erl", "./scripts/"},
+            {copy, "scripts/hashes.escript", "./scripts/"},
+            {copy, "scripts/expand_ipsets.exs", "./scripts/"},
+            {copy, "scripts/cleanup.sh", "./scripts/"},
+            {copy, "scripts/ipset_diff.sh", "./scripts/"},
+            {mkdir, "./priv"},
+            {copy, "priv/dog.service", "./priv/"}
+        ]}
+    ]
+}.
+
+
+{profiles, [
+    {'api.pro', [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/pro.sys.config"}
+        ]}
+    ]},
+    {'api.qa', [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/qa.sys.config"}
+        ]}
+    ]},
+    {box, [
+	      {overrides, [
+	      %% For all apps:
+	          {del, [{erl_opts, [warnings_as_errors]}]}
+	      ]},
+        {relx, [
+            {dev_mode, false},
+            {extended_start_script, true},
+            {sys_config, "config/sys.config.box"},
+            {include_erts, true}
+        ]}
+    ]},
+    {local, [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, false},
+            {sys_config, "config/local.sys.config"}
+        ]}
+    ]},
+    {mob_qa, [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/qa.sys.config"}
+        ]}
+    ]},
+    {mob_pro, [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/pro.sys.config"}
+        ]}
+    ]},
+    {pro, [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/pro.sys.config"}
+        ]}
+    ]},
+    {qa, [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/qa.sys.config"}
+        ]}
+    ]},
+    {'stage.qa', [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/qa.sys.config"}
+        ]}
+    ]},
+    {test, [{deps, [
+        jsx,
+        meck,
+        {liet, ".*", {git, "https://github.com/relaypro-open/liet.git", {branch, "main"}}}
+    ]}]},
+    {'x.pro', [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/pro.sys.config"}
+        ]}
+    ]},
+    {'x.qa', [
+        {erl_opts, [debug_info]},
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true},
+            {system_libs, true},
+            {sys_config, "config/qa.sys.config"}
+        ]}
+    ]},
+    {local_docker, [
+	      {overrides, [
+	      %% For all apps:
+	          {del, [{erl_opts, [warnings_as_errors]}]}
+	      ]},
+        {relx, [
+            {dev_mode, false},
+            {extended_start_script, true},
+            {sys_config, "config/sys.config"},
+            {include_erts, true}
+        ]}
+    ]}
+]}.
+
+{plugins, [
+    {relflow, ".*", {git, "https://github.com/RJ/relflow.git", {branch, "master"}}},
+    rebar3_run,
+    rebar3_hex,
+    rebar3_elixir
+]}.
+
+%{eunit_opts, [verbose]}.
