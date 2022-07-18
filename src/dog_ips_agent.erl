@@ -128,7 +128,7 @@ handle_call({create_ipsets,Ipsets}, _From, State) ->
 handle_call(read_hash, _From, State) ->
     Hash = dog_ipset:read_hash(), {reply, Hash, State};
 handle_call(_Request, _From, State) ->
-    {reply, ok, State};
+    {reply, ok, State}.
 %handle_call(watch_iptables, _From, _State) ->
 %    %{ok, NewState} = dog_ips:do_watch_iptables(State),
 %    NewState = dog_config_agent:get_state(),
@@ -139,11 +139,6 @@ handle_call(_Request, _From, State) ->
 %    {ok, NewState} = dog_ips:do_watch_interfaces(State),
 %    erlang:send_after(10000, self(), watch_interfaces),
 %    {reply, NewState};
-handle_call(keepalive, _From, State) ->
-    {ok, NewState} = dog_ips:do_keepalive(State),
-    KeepalivePollSeconds = application:get_env(dog, keepalive_poll_seconds, 60) * 1000,
-    erlang:send_after(KeepalivePollSeconds, self(), keepalive),
-    {reply, NewState}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_cast/2
@@ -182,6 +177,11 @@ handle_info(watch_interfaces, State) ->
     {ok, NewState} = dog_ips:do_watch_interfaces(State),
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     erlang:send_after(WatchInterfacesPollMilliseconds, self(), watch_interfaces),
+    {noreply, NewState};
+handle_info(keepalive, State) ->
+    {ok, NewState} = dog_ips:do_keepalive(State),
+    KeepalivePollSeconds = application:get_env(dog, keepalive_poll_seconds, 60) * 1000,
+    erlang:send_after(KeepalivePollSeconds, self(), keepalive),
     {noreply, NewState};
 handle_info(Info, State) ->
     lager:error("unknown_message: Info: ~p, State: ~p",
