@@ -104,6 +104,7 @@ init(_Args) ->
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
     NewState = dog_config_agent:get_state(),
+    dog_ips:do_watch_interfaces(NewState), %send initial force update
     lager:error("NewState: ~p",[NewState]),
     lager:error("hostname: ~p",[dog_state:get_hostname(NewState)]),
     %{ok, State} = dog_ips:do_watch_iptables(NewState),
