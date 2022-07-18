@@ -3,6 +3,7 @@
 -include("dog.hrl").
 
 -export([
+         do_init_config/0, 
          do_watch_config/0, 
          environment/0,
          get_config/0, 
@@ -14,6 +15,16 @@
          subscriber_loop/4,
          write_config_file/4
         ]).
+
+-spec do_init_config() -> atom().
+do_init_config() ->
+    Environment = environment(),
+    Location = location(),
+    Group = group(),
+    Hostkey = hostkey(),
+    lager:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
+    dog_turtle_sup:start_mq_services(Environment, Location, Group, Hostkey),
+    ok.
 
 %% @doc watches for config from queue.
 -spec do_watch_config() -> atom().

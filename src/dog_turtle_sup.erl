@@ -15,6 +15,7 @@
          start_file_transfer_service/4,
          start_ips_publisher/0,
          start_link/0,
+         start_mq_services/4,
          stop_config_service/0,
          stop_file_transfer_service/0,
          stop_ips_agent/0,
@@ -155,6 +156,12 @@ get_pid(Name) ->
                     {error, deleted}            
             end                                 
     end.   
+
+start_mq_services(Environment, Location, Group, Hostkey) ->
+    start_config_service(Hostkey),
+    start_iptables_service(Environment, Location, Group, Hostkey),
+    start_file_transfer_service(Environment, Location, Group, Hostkey),
+    start_ips_publisher().
 
 restart_mq_services(Environment, Location, Group, Hostkey) ->
     stop_config_service(),
