@@ -186,7 +186,7 @@ init(_Args) ->
       _ ->
         Hostkey
     end,
-    lager:info("Hostkey: ~p",[Hostkey1]),
+    lager:error("Hostkey: ~p",[Hostkey1]),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
@@ -202,7 +202,7 @@ init(_Args) ->
     dog_interfaces:publish_to_queue(StateMap),
     lager:debug("StateMap: ~p~n", [StateMap]),
     lager:debug("State: ~p", [State]),
-    lager:info("force update"),
+    lager:error("force update"),
   {ok, State}.
 
 %% ------------------------------------------------------------------
