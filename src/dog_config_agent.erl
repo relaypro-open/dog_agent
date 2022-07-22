@@ -140,6 +140,7 @@ group_routing_key() ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init(_Args) ->
+    timer:sleep(10000), %Terrible, but works.
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
