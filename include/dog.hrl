@@ -18,3 +18,5 @@
 %For mock testing:
 %-define(EC2_METADATA_BASE_URL, "http://localhost:3000").
 %-define(IBM_METADATA_BASE_URL, "http://localhost:3000").
+
+-include_lib("kernel/include/logger.hrl").

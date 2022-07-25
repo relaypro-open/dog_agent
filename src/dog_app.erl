@@ -40,7 +40,7 @@ write_pid_file() ->
     case file:open(FileName, [write]) of
       {ok, File} -> file:write(File, Pid), file:close(File);
       {error, Error} ->
-      lager:error("unable to open pid file for writing "
+      logger:error("unable to open pid file for writing "
               "~p~n",
               [Error])
     end.

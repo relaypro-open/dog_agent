@@ -176,7 +176,7 @@ restart_mq_services(Environment, Location, Group, Hostkey) ->
     restart_ips_agent().
 
 start_config_service(Hostkey) ->
-    lager:debug("Hostkey: ~p",[Hostkey]),
+    logger:debug("Hostkey: ~p",[Hostkey]),
     turtle_service:new(dog_turtle_sup,config_service_spec(Hostkey)).
 
 stop_config_service() ->

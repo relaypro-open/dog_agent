@@ -17,7 +17,7 @@
                              binary()}.
 
 do_get_group_routing_key(State) ->
-    lager:debug("State: ~p", [State]),
+    logger:debug("State: ~p", [State]),
     RoutingKey = dog_state:to_group_routing_key(State),
     {ok, RoutingKey}.
 
@@ -26,7 +26,7 @@ do_get_group_routing_key(State) ->
                             binary()}.
 
 do_get_host_routing_key(State) ->
-    lager:debug("State: ~p", [State]),
+    logger:debug("State: ~p", [State]),
     RoutingKey = dog_state:to_host_routing_key(State),
     {ok, RoutingKey}.
 
@@ -36,13 +36,13 @@ do_get_host_routing_key(State) ->
 %                dog_state:dog_state()) -> no_return().
 %
 %do_watch_iptables(State) ->
-%    %lager:debug("do_watch_iptables"),
+%    %logger:debug("do_watch_iptables"),
 %    %{ok, GroupRoutingKey} = do_get_group_routing_key(State),
-%    %lager:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
+%    %logger:debug("GroupRoutingKey: ~p", [GroupRoutingKey]),
 %    %ok =
 %    %dog_iptables:ensure_iptables_consumer(GroupRoutingKey),
 %    %{ok, HostRoutingKey} = do_get_host_routing_key(State),
-%    %lager:debug("HostRoutingKey: ~p", [HostRoutingKey]),
+%    %logger:debug("HostRoutingKey: ~p", [HostRoutingKey]),
 %    %ok =
 %    %dog_iptables:ensure_iptables_consumer(HostRoutingKey),
 %    {ok, State}.
@@ -54,7 +54,7 @@ do_get_host_routing_key(State) ->
                                  dog_state:dog_state()}.
 
 do_watch_interfaces(StateOld) ->
-    %lager:info("State0: ~p", [State0]),
+    %logger:info("State0: ~p", [State0]),
     Provider = dog_state:get_provider(StateOld),
     {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
     HostnameOld = dog_state:get_hostname(StateOld),
@@ -101,11 +101,11 @@ do_watch_interfaces(StateOld) ->
                                    }),
     case InterfacesOld == InterfacesNew of
       false ->
-      lager:debug("HostnameOld, InterfacesOld: ~p, ~p",
+      logger:debug("HostnameOld, InterfacesOld: ~p, ~p",
               [HostnameOld, InterfacesOld]),
-      lager:debug("Hostname, Interfaces: ~p, ~p",
+      logger:debug("Hostname, Interfaces: ~p, ~p",
               [Hostname, InterfacesNew]),
-      lager:debug("StateNew: ~p", [StateNew]);
+      logger:debug("StateNew: ~p", [StateNew]);
       %StateMap = dog_state:to_map(StateNew);
       %dog_interfaces:publish_to_queue(StateMap);
       true -> 
@@ -119,10 +119,10 @@ do_watch_interfaces(StateOld) ->
                               dog_state:dog_state()}.
 
 do_keepalive(State) ->
-    lager:debug("do_keepalive"),
+    logger:debug("do_keepalive"),
     UpdateType = keepalive,
     StateNew = dog_state:set_updatetype(State, UpdateType),
-    lager:debug("StateNew: ~p", [StateNew]),
+    logger:debug("StateNew: ~p", [StateNew]),
     StateMap = dog_state:to_map(StateNew),
     dog_interfaces:publish_to_queue(StateMap),
     {ok, StateNew}.

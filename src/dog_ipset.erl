@@ -9,13 +9,13 @@
 -spec create_ipsets(IpsetConf :: iolist()) -> ok.
 
 create_ipsets(IpsetConf) ->
-    lager:debug("IpsetConf: ~p", [IpsetConf]),
+    logger:debug("IpsetConf: ~p", [IpsetConf]),
     ok = write_temp_file(IpsetConf),
     case restore_ipset() of
-      ok -> lager:info("Successfully restored ipset"), ok;
+      ok -> logger:info("Successfully restored ipset"), ok;
       {error,
        [{_RestoreError, _RestoreCode}, {stderr, _CmdError}]} ->
-      lager:error("Error restoring ipset")
+      logger:error("Error restoring ipset")
     end,
     ok = persist_ipset(),
     cleanup_ipset(),
@@ -25,15 +25,15 @@ create_ipsets(IpsetConf) ->
                         {error, iolist()}.
 
 write_temp_file(IpsetConf) ->
-    lager:debug("IpsetConf: ~p", [IpsetConf]),
+    logger:debug("IpsetConf: ~p", [IpsetConf]),
     {ok, TmpFile} = file:open((?RUNDIR) ++ "/ipset.txt",
                   [write]),
     Result = file:write(TmpFile, IpsetConf),
     file:close(TmpFile),
     case Result of
-      ok -> lager:info("wrote ipset.txt"), ok;
+      ok -> logger:info("wrote ipset.txt"), ok;
       {error, Error} ->
-      lager:error("error: ~p", [Error]), {error, Error}
+      logger:error("error: ~p", [Error]), {error, Error}
     end.
 
 -spec restore_ipset() -> ok | {error, list()}.
@@ -48,7 +48,7 @@ restore_ipset(ErrorCount) ->
   IpsetRestoreRetryWaitSeconds = application:get_env(dog, ipset_restore_retry_wait_seconds, 2),
   IpsetRestoreWaitSeconds = application:get_env(dog, ipset_restore_wait_seconds, 3),
   RestoreCmd = "cat " ++ ?RUNDIR ++ "/ipset.txt | /home/dog/bin/ipset restore -exist", % no '-f' in old ipset on centos 6
-  lager:debug("RestoreCmd: ~p", [RestoreCmd]),
+  logger:debug("RestoreCmd: ~p", [RestoreCmd]),
   Result = dog_os:cmd(RestoreCmd),
   timer:sleep(IpsetRestoreWaitSeconds * 1000),
   case Result of       % Run a shell command to sleep for 1000s.
@@ -56,16 +56,16 @@ restore_ipset(ErrorCount) ->
     [] ->
       ok;
     RestoreError ->
-      lager:error("RestoreError: ~p",[RestoreError]),       
+      logger:error("RestoreError: ~p",[RestoreError]),       
       NextErrorCount = ErrorCount + 1,
       case ErrorCount of
         ErrorCount when ErrorCount =< IpsetRestoreRetryLimit ->
           timer:sleep(IpsetRestoreRetryWaitSeconds * 1000),
-          lager:debug("Restore Retry number: ~p",[NextErrorCount]),
+          logger:debug("Restore Retry number: ~p",[NextErrorCount]),
           restore_ipset(NextErrorCount),
           ok;
         ErrorCount when ErrorCount > IpsetRestoreRetryLimit  ->
-          lager:error("Unable to restore after retry number: ~p",[ErrorCount]),
+          logger:error("Unable to restore after retry number: ~p",[ErrorCount]),
           {error, RestoreError}
       end
   end.
@@ -76,7 +76,7 @@ persist_ipset() ->
     PersistCmd =
     "/home/dog/bin/ipset save | tee /etc/iptable"
     "s/rules.ipset",
-    lager:debug("PersistCmd: ~p", [PersistCmd]),
+    logger:debug("PersistCmd: ~p", [PersistCmd]),
     dog_os:cmd(PersistCmd),
     ok.
 
@@ -85,12 +85,12 @@ persist_ipset() ->
 
 read_current_ipset() ->
     ReadCmd = "/home/dog/bin/ipset save",
-    lager:debug("ReadCmd: ~p", [ReadCmd]),
+    logger:debug("ReadCmd: ~p", [ReadCmd]),
     case dog_os:cmd(ReadCmd) of
         [] ->
             [];
         ReadCmdResult ->
-            lager:debug("ReadCmdResult: ~p", [ReadCmdResult]),
+            logger:debug("ReadCmdResult: ~p", [ReadCmdResult]),
             %io_lib:format("~s",[lists:flatten(lists:join("",ReadCmdResult))])
             L = io_lib:format("~s",[lists:flatten(ReadCmdResult)]),
             lists:flatten(L)
@@ -106,7 +106,7 @@ create_hash(Ipset) ->
 read_hash() ->
     NormalizedIpset = normalize_ipset(read_current_ipset()),
     IpsetHash = create_hash(NormalizedIpset),
-    lager:info("ipset hash: ~p",[IpsetHash]),
+    logger:info("ipset hash: ~p",[IpsetHash]),
     IpsetHash.
 
 -spec match_only_add(Line :: iolist()) -> boolean().
@@ -131,17 +131,17 @@ normalize_ipset(Ipset) ->
 
 -spec cleanup_ipset() -> ok.
 cleanup_ipset() ->
-    lager:info("cleanup_ipset()"),
+    logger:info("cleanup_ipset()"),
     _One = dog_os:cmd("grep create /etc/dog/ipset.txt | awk '{print $2}' | sort | uniq > /etc/dog/1.tmp"),
     _Two = dog_os:cmd("/home/dog/bin/ipset list -name | sort | uniq > /etc/dog/2.tmp"),
     Cmd = "for name in `comm -1 -3 /etc/dog/1.tmp /etc/dog/2.tmp`;do echo destroy $name;done > /etc/dog/ipset_cleanup.txt; cat /etc/dog/ipset_cleanup.txt | /home/dog/bin/ipset restore; rm /etc/dog/1.tmp /etc/dog/2.tmp",
-    lager:debug("Cmd: ~p", [Cmd]),
+    logger:debug("Cmd: ~p", [Cmd]),
     case dog_os:cmd(Cmd) of
       [] ->
             ok;
       CmdError ->
-          lager:error("Cmd: ~p", [Cmd]),
-          lager:error("CmdError: ~p", [CmdError]),
+          logger:error("Cmd: ~p", [Cmd]),
+          logger:error("CmdError: ~p", [CmdError]),
           {error, CmdError}
     end.
 

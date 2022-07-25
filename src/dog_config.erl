@@ -22,7 +22,7 @@ do_init_config() ->
     Location = location(),
     Group = group(),
     Hostkey = hostkey(),
-    lager:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
+    logger:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
     dog_turtle_sup:start_mq_services(Environment, Location, Group, Hostkey),
     ok.
 
@@ -34,18 +34,18 @@ do_watch_config() ->
     Location = location(),
     Group = group(),
     Hostkey = hostkey(),
-    lager:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
+    logger:debug("~p, ~p, ~p, ~p",[Environment, Location, Group, Hostkey]),
     dog_turtle_sup:restart_mq_services(Environment, Location, Group, Hostkey),
     ok.
 
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
-    lager:debug("Payload: ~p", [Payload]),
+    logger:debug("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
-    lager:debug("Proplist: ~p", [Proplist]),
+    logger:debug("Proplist: ~p", [Proplist]),
     UserData = proplists:get_value(user_data, Proplist),
-    lager:debug("UserData: ~p", [UserData]),
+    logger:debug("UserData: ~p", [UserData]),
     Config = maps:get(config, UserData),
-    lager:debug("Config: ~p", [Config]),
+    logger:debug("Config: ~p", [Config]),
     Group = maps:get(<<"group">>, Config),
     Location = maps:get(<<"location">>, Config),
     Environment = maps:get(<<"environment">>, Config),
@@ -73,7 +73,7 @@ write_config_file(Group, Location, Environment,
 -spec read_config_file() -> Map :: {ok, map()} | atom().
 
 read_config_file() ->
-    lager:info("read_config_file()"),
+    logger:info("read_config_file()"),
     case file:read_file(?CONFIG_FILE) of
         {ok, ConfigJson} ->
             {ok, jsx:decode(ConfigJson, [return_maps])};

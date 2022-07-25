@@ -146,6 +146,7 @@ watch_config() ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init(_Args) ->
+    timer:sleep(15000),
     ok = dog_config:do_init_config(),
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
@@ -165,7 +166,7 @@ init(_Args) ->
     UpdateType = force,
     {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
         {ok, ConfigMap} ->
-            lager:debug("ConfigMap: ~p", [ConfigMap]),
+            logger:debug("ConfigMap: ~p", [ConfigMap]),
             {
               maps:get(<<"group">>, ConfigMap),
               maps:get(<<"location">>, ConfigMap),
@@ -186,7 +187,7 @@ init(_Args) ->
       _ ->
         Hostkey
     end,
-    lager:error("Hostkey: ~p",[Hostkey1]),
+    logger:error("Hostkey: ~p",[Hostkey1]),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
@@ -197,12 +198,12 @@ init(_Args) ->
                                Ec2AvailabilityZone,
                                Ec2SecurityGroupIds,
                                Ec2OwnerId,Ec2InstanceTags),
-    lager:debug("State: ~p", [State]),
+    logger:debug("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
     dog_interfaces:publish_to_queue(StateMap),
-    lager:debug("StateMap: ~p~n", [StateMap]),
-    lager:debug("State: ~p", [State]),
-    lager:error("force update"),
+    logger:debug("StateMap: ~p~n", [StateMap]),
+    logger:debug("State: ~p", [State]),
+    logger:error("force update"),
   {ok, State}.
 
 %% ------------------------------------------------------------------
@@ -294,7 +295,7 @@ handle_call(watch_config, _From, State) ->
                {stop, normal, _}.
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
-    lager:error("unknown_message: Msg: ~p, State: ~p",
+    logger:error("unknown_message: Msg: ~p, State: ~p",
         [Msg, State]),
     {noreply, State}.
 
@@ -307,7 +308,7 @@ handle_cast(Msg, State) ->
 %%----------------------------------------------------------------------
 % TODO: be more specific about Info in spec
 handle_info(Info, State) ->
-    lager:error("unknown_message: Info: ~p, State: ~p",
+    logger:error("unknown_message: Info: ~p, State: ~p",
         [Info, State]),
     {noreply, State}.
 
@@ -319,7 +320,7 @@ handle_info(Info, State) ->
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
 terminate(Reason, State) ->
-    lager:info("terminate: Reason: ~p, State: ~p",
+    logger:info("terminate: Reason: ~p, State: ~p",
            [Reason, State]),
     {close}.
 

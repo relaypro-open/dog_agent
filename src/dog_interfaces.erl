@@ -57,7 +57,7 @@ is_softlayer_instance() ->
         _ ->
             case hackney:request(Method, Url, Headers, Payload, Options) of
                 {error, _Error} ->
-                    lager:info("Not a softlayer instance"),
+                    logger:info("Not a softlayer instance"),
                     false;
                 {ok, StatusCode, _RespHeaders, _ClientRef} ->
                     case StatusCode of
@@ -84,7 +84,7 @@ is_ec2_instance() ->
             Options = [{connect_timeout,1000}],
             case hackney:request(Method, Url, Headers, Payload, Options) of
                 {error, _Error} ->
-                    lager:info("Not an ec2 instance"),
+                    logger:info("Not an ec2 instance"),
                     false;
                 {ok, StatusCode, _RespHeaders, _ClientRef} ->
                     case StatusCode of
@@ -186,7 +186,7 @@ ec2_availability_zone() ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_availability_zone"),
+            logger:error("Error getting ec2_availability_zone"),
             <<"">>;
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -194,7 +194,7 @@ ec2_availability_zone() ->
                     {ok,InstanceId} = hackney:body(ClientRef),
                     InstanceId;
                 _ ->
-                    lager:error("Error getting ec2_availability_zone"),
+                    logger:error("Error getting ec2_availability_zone"),
                     <<"">>
             end
     end.
@@ -208,7 +208,7 @@ ec2_instance_id() ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_instance_id"),
+            logger:error("Error getting ec2_instance_id"),
             <<"">>;
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -216,7 +216,7 @@ ec2_instance_id() ->
                     {ok,InstanceId} = hackney:body(ClientRef),
                     InstanceId;
                 _ ->
-                    lager:error("Error getting ec2_instance_id"),
+                    logger:error("Error getting ec2_instance_id"),
                     <<"">>
             end
     end.
@@ -247,7 +247,7 @@ ec2_security_group_ids(Mac) ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_security_group_ids"),
+            logger:error("Error getting ec2_security_group_ids"),
             [];
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -257,7 +257,7 @@ ec2_security_group_ids(Mac) ->
                     SecurityGroupsStrings = [list_to_binary(Sg) || Sg <- SecurityGroups],
                     SecurityGroupsStrings;
                 _ ->
-                    lager:error("Error getting ec2_security_group_ids"),
+                    logger:error("Error getting ec2_security_group_ids"),
                     []
             end
     end.
@@ -288,7 +288,7 @@ ec2_owner_id(Mac) ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_owner_id"),
+            logger:error("Error getting ec2_owner_id"),
             {error, notfound};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -298,7 +298,7 @@ ec2_owner_id(Mac) ->
                     OwnersStrings = [list_to_binary(Sg) || Sg <- Owners],
                     hd(OwnersStrings);
                 _ ->
-                    lager:error("Error getting ec2_owner_id"),
+                    logger:error("Error getting ec2_owner_id"),
                     {error,notfound}
             end
     end.
@@ -312,7 +312,7 @@ ec2_public_ipv4(Mac) ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, Error} ->
-            lager:error("Error getting ec2_public_ipv4: ~p", [Error]),
+            logger:error("Error getting ec2_public_ipv4: ~p", [Error]),
             {error, failed};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -321,10 +321,10 @@ ec2_public_ipv4(Mac) ->
                     %Ips = string:split(Body,"\n"),
                     lists:flatten(re:split(Body, "\n", [{return, binary}]));
                 404 ->
-                    lager:warning("Failed to get ec2_public_ipv4: ~p. This mac was not assigned a public-ipv4", [StatusCode]),
+                    logger:warning("Failed to get ec2_public_ipv4: ~p. This mac was not assigned a public-ipv4", [StatusCode]),
                     {error, notfound};
                 _ ->
-                    lager:error("Error getting ec2_public_ipv4: ~p", [StatusCode]),
+                    logger:error("Error getting ec2_public_ipv4: ~p", [StatusCode]),
                     {error, StatusCode}
             end
     end.
@@ -338,7 +338,7 @@ ec2_macs() ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2 macs"),
+            logger:error("Error getting ec2 macs"),
             {error, notfound};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -349,7 +349,7 @@ ec2_macs() ->
                     MacStrings@1 = [lists:flatten(re:split(Mac,"/",[{return, list}])) || Mac <- MacStrings@0],
                     MacStrings@1;
                 _ ->
-                    lager:error("Error getting ec2 macs"),
+                    logger:error("Error getting ec2 macs"),
                     {error, notfound}
             end
     end.
@@ -371,13 +371,13 @@ get_interfaces(Provider, OldInterfaces) ->
                 false ->
                     case ec2_public_ipv4() of
                         {error, _} ->
-                            lager:error("Using cached ec2_public_ipv4"),
+                            logger:error("Using cached ec2_public_ipv4"),
                             OldPublicIpv4 = proplists:get_value(<<"ec2_public_ipv4">>,OldInterfaces,[]),
                             Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,OldPublicIpv4}]),
                             {ok, Both};
                         Ec2PublicIpv4 ->
                             Both = lists:append(LocalInterfaces,[{<<"ec2_public_ipv4">>,Ec2PublicIpv4}]),
-                            lager:info("Both: ~p",[Both]),
+                            logger:info("Both: ~p",[Both]),
                             {ok, Both}
                    end
             end;
@@ -438,7 +438,7 @@ get_host_key() ->
 
 -spec publish_to_queue(Config :: map() ) -> any().
 publish_to_queue(Config) ->
-    lager:info("publish_to_queue: ~p",[Config]),
+    logger:info("publish_to_queue: ~p",[Config]),
     UserData = #{config => Config},
     Count = 1,
     BrokerRoutingKey = <<"ips">>,
@@ -451,7 +451,7 @@ publish_to_queue(Config) ->
 	Message,
 	#{ delivery_mode => persistent }),
 
-    lager:info("Response: ~p~n", [Response]),
+    logger:info("Response: ~p~n", [Response]),
     Response.
 
 -spec ip_to_queue() -> any().
@@ -507,7 +507,7 @@ ec2_instance_tags() ->
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
-            lager:error("Error getting ec2_instance_tags"),
+            logger:error("Error getting ec2_instance_tags"),
             [];
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
@@ -520,7 +520,7 @@ ec2_instance_tags() ->
                     end, TagNamesStrings),
                     maps:from_list(Results);
                 _ ->
-                    lager:error("Error getting ec2_instance_tags"),
+                    logger:error("Error getting ec2_instance_tags"),
                     []
             end
     end.

@@ -36,35 +36,35 @@
 %% ------------------------------------------------------------------
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
-    lager:debug("Message: ~p",[Message]),
+    logger:debug("Message: ~p",[Message]),
     ApiUser = proplists:get_value(api_user, Message, "undefined"),
     case ApiUser of
         "undefined" ->
-            lager:error("api_user missing in Message"),
+            logger:error("api_user missing in Message"),
             {ack, {error, <<"no api_user specified">>}};
          _ ->
             Filename = dog_common:to_list(proplists:get_value(file_name, Message)),
             Command = proplists:get_value(command, Message),
             UserData = proplists:get_value(user_data, Message),
-            lager:debug("Command: ~p",[Command]),
+            logger:debug("Command: ~p",[Command]),
             case Command of
                 send_file ->
                     try
-                        lager:debug("send_file"),
+                        logger:debug("send_file"),
                         FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
                         FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-                        lager:info("send_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
+                        logger:info("send_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
                         case FilenameClean of
                             unsafe ->
-                                lager:debug("Unsafe FilePath"),
+                                logger:debug("Unsafe FilePath"),
                                 {reply, <<"text/json">>, jsx:encode(file_bad), State};
                             _ ->
                                 FileTotalBlocks = proplists:get_value(total_blocks, Message),
                                 FileCurrentBlock = proplists:get_value(current_block, Message),
                                 MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
                                 FileBlock = maps:get(file_block, UserData),
-                                lager:debug("FilePath: ~p",[FilePath]),
-                                lager:debug("Filename: ~p, MaxBlockSizeBytes: ~p, Block ~p of ~p",[Filename,MaxBlockSizeBytes,FileCurrentBlock,FileTotalBlocks]),
+                                logger:debug("FilePath: ~p",[FilePath]),
+                                logger:debug("Filename: ~p, MaxBlockSizeBytes: ~p, Block ~p of ~p",[Filename,MaxBlockSizeBytes,FileCurrentBlock,FileTotalBlocks]),
                                 %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
                                 {ok,IoDevice} = case FileCurrentBlock of
                                                     1 ->
@@ -87,7 +87,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                                     N when N >=  FileTotalBlocks ->
                                         %file:write(IoDevice,FileBlock),
                                         StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-                                        lager:debug("StartByte: ~p",[StartByte]),
+                                        logger:debug("StartByte: ~p",[StartByte]),
                                         file:pwrite(IoDevice,StartByte,FileBlock),
                                         file:close(IoDevice),
                                         {ack,State};
@@ -95,7 +95,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                                     _ ->
                                         %file:write(IoDevice,FileBlock),
                                         StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-                                        lager:debug("StartByte: ~p",[StartByte]),
+                                        logger:debug("StartByte: ~p",[StartByte]),
                                         file:pwrite(IoDevice,StartByte,FileBlock),
                                         {ack,State}
                                         %{reply, <<"text/json">>, jsx:encode(file_ok), State}
@@ -105,20 +105,20 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                         {ack, NewState} -> {ack,NewState}
                     catch
                         Exception:Reason:Stacktrace -> 
-                            lager:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+                            logger:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
                             {ack, Reason}
                     end;
                 delete_file ->
                     try
                         FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
                         FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-                        lager:info("delete_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
+                        logger:info("delete_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
                         case FilenameClean of
                             unsafe ->
-                                lager:debug("Unsafe FilePath"),
+                                logger:debug("Unsafe FilePath"),
                                 {reply, <<"text/json">>, jsx:encode(file_bad), State};
                             _ ->
-                                lager:debug("FilePath: ~p",[FilePath]),
+                                logger:debug("FilePath: ~p",[FilePath]),
                                 case filelib:is_dir(FilePath) of
                                     true ->
                                         case file:del_dir(FilePath) of
@@ -142,13 +142,13 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                         Reply -> Reply
                     catch
                         Exception:Reason:Stacktrace -> 
-                            lager:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+                            logger:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
                             {reply, <<"text/json">>, jsx:encode([Reason]), State}
                     end;
                 fetch_file ->
-                    lager:info("fetch_file: ApiUser: ~p, Filename: ~p",[ApiUser,Filename]),
+                    logger:info("fetch_file: ApiUser: ~p, Filename: ~p",[ApiUser,Filename]),
                     try
-                        lager:debug("Filename: ~p",[Filename]),
+                        logger:debug("Filename: ~p",[Filename]),
                         case file:read_file(Filename) of
                             {ok,Bytes} ->
                                 {reply, <<"application/octet-stream">>, Bytes, State};
@@ -159,14 +159,14 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                         Reply -> Reply
                     catch
                         Exception:Reason:Stacktrace -> 
-                            lager:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+                            logger:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
                             {reply, <<"text/json">>, jsx:encode([Reason]), State}
                     end;
                 execute_command ->
                     try
                         ExecuteCommandBase64 = proplists:get_value(execute_command, Message),
                         ExecuteCommandRaw = base64:decode(ExecuteCommandBase64),
-                        lager:debug("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
+                        logger:debug("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
                         UseShell = proplists:get_value(use_shell, Message, false),
                         RunAsUser = proplists:get_value(user, Message, "dog"),
                         ExecuteCommand = case UseShell of                                          
@@ -175,15 +175,15 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                                              false ->                                                
                                                  string:split(ExecuteCommandRaw," ")
                                         end,                                                    
-                        lager:info("execute_command: ApiUser: ~p, RunAsUser: ~p, Command: ~p",[ApiUser,RunAsUser,ExecuteCommand]),
+                        logger:info("execute_command: ApiUser: ~p, RunAsUser: ~p, Command: ~p",[ApiUser,RunAsUser,ExecuteCommand]),
                         Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, RunAsUser}]),
-                        lager:debug("Result: ~p",[Result]),
+                        logger:debug("Result: ~p",[Result]),
                         case Result of
                             {ok,[{stdout,StdOut}]} ->
                                 case length(StdOut) > 1 of
                                     true ->
                                         ParsedStdOut = [dog_common:binary_join(tl(StdOut),<<"">>)],
-                                        lager:debug("ParsedStdOut: ~p",[ParsedStdOut]),
+                                        logger:debug("ParsedStdOut: ~p",[ParsedStdOut]),
                                         {reply, <<"text/json">>, jsx:encode([{ok, ParsedStdOut}]), State};
                                     false ->
                                         {reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State}
@@ -195,18 +195,18 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                             {error,[{exit_status,_ExitStatus},{stderr,StdErr}]} ->
                                 {reply, <<"text/json">>, jsx:encode([{error, StdErr}]), State};
                             UnknownResponse ->
-                                lager:debug("UnknownResponse: ~p",[UnknownResponse]),
+                                logger:debug("UnknownResponse: ~p",[UnknownResponse]),
                                 {reply, <<"text/json">>, {error, [UnknownResponse]}, State}
                         end
                     of
                         Reply -> Reply
                     catch
                         Exception:Reason:Stacktrace -> 
-                            lager:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+                            logger:error("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
                             {reply, <<"text/json">>, jsx:encode([{error,Reason}]), State}
                     end;
                 _ ->
-                    lager:error("Unknown command: ~p",[Command]),
+                    logger:error("Unknown command: ~p",[Command]),
                     %{ack,State}
                     {reply, <<"text/json">>, jsx:encode(error), State}
             end
@@ -221,7 +221,7 @@ start_link(Link) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 init([]) ->
-  lager:debug("init"),
+  logger:debug("init"),
   State = [],
   {ok, State}.
 
@@ -233,17 +233,17 @@ handle_call(_Request, _From, State) ->
 handle_cast(stop, State) ->
   {stop, normal, State};
 handle_cast(Msg, State) ->
-  lager:error("unknown_message: Msg: ~p, State: ~p",[Msg, State]),
+  logger:error("unknown_message: Msg: ~p, State: ~p",[Msg, State]),
   {noreply, State}.
 
 -spec handle_info(_,_) -> {'noreply',_}.
 handle_info(Info, State) ->
-  lager:error("unknown_message: Info: ~p, State: ~p",[Info, State]),
+  logger:error("unknown_message: Info: ~p, State: ~p",[Info, State]),
   {noreply, State}.
 
 -spec terminate(_, map()) -> {close}.
 terminate(Reason, State) ->
-  lager:info("terminate: Reason: ~p, State: ~p", [Reason, State]),
+  logger:info("terminate: Reason: ~p, State: ~p", [Reason, State]),
   {close}.
 
 -spec code_change(_, map(), _) -> {ok, map()}.

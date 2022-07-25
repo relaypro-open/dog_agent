@@ -128,7 +128,7 @@ persist_ipv4_tables() ->
     case Result of
       [] -> ok;
       _ ->
-        lager:error("Result: ~p", [Result]),
+        logger:error("Result: ~p", [Result]),
         error
     end.
 
@@ -163,10 +163,10 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
-              lager:info("applied ipv4 ruleset"),
+              logger:info("applied ipv4 ruleset"),
               ok;
             _ ->
-              lager:error("validate_ipv4_ruleset Result: ~p", [Result]),
+              logger:error("validate_ipv4_ruleset Result: ~p", [Result]),
               error
           end;
         false ->
@@ -176,10 +176,10 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
-              lager:info("applied ipv4 ruleset"),
+              logger:info("applied ipv4 ruleset"),
               ok;
             _ ->
-              lager:error("validate_ipv4_ruleset Result: ~p", [Result]),
+              logger:error("validate_ipv4_ruleset Result: ~p", [Result]),
               error
           end
       end
@@ -211,9 +211,9 @@ apply_ipv6_ruleset(TempFile) ->
       Cmd = ?IP6TABLES_RESTORE_COMMAND ++ " " ++ TempFile,
       Result = dog_os:cmd(Cmd),
       case Result of
-        [] -> lager:info("applied ipv6 ruleset"), ok;
+        [] -> logger:info("applied ipv6 ruleset"), ok;
         _ ->
-        lager:error("validate_ipv6_ruleset Result: ~p",
+        logger:error("validate_ipv6_ruleset Result: ~p",
                 [Result]),
         error
       end
@@ -297,7 +297,7 @@ read_current_ipv6_ipsets() ->
 backup_current_ipv4_iptables() ->
     Cmd = ?IP4TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/iptables.back",
     Result = dog_os:cmd(Cmd),
-    lager:debug("backup_ipv4_iptables Result: ~p",
+    logger:debug("backup_ipv4_iptables Result: ~p",
         [Result]),
     case Result of
       [] -> ok;
@@ -309,7 +309,7 @@ backup_current_ipv4_iptables() ->
 backup_current_ipv6_iptables() ->
     Cmd = ?IP6TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/ip6tables.back",
     Result = dog_os:cmd(Cmd),
-    lager:debug("backup_ipv6_iptables Result: ~p",
+    logger:debug("backup_ipv6_iptables Result: ~p",
         [Result]),
     case Result of
       [] -> ok;
@@ -341,7 +341,7 @@ update_iptables4(Ruleset, Retry) ->
     IptablesRestoreRetryWaitSeconds =
     application:get_env(dog,
                 iptables_restore_retry_wait_seconds, 3),
-    lager:debug("update_iptables4"),
+    logger:debug("update_iptables4"),
     ok = backup_current_ipv4_iptables(),
     {ok, TempFile} = write_ipv4_ruleset(Ruleset),
     case apply_ipv4_ruleset(TempFile) of
@@ -350,11 +350,11 @@ update_iptables4(Ruleset, Retry) ->
       case Retry of
         R when R =< IptablesRestoreRetryLimit ->
         timer:sleep(IptablesRestoreRetryWaitSeconds * 1000),
-        lager:info("Retry count updating IPv4 iptables: ~p",
+        logger:info("Retry count updating IPv4 iptables: ~p",
                [R + 1]),
         update_iptables4(Ruleset, R + 1);
         R when R > IptablesRestoreRetryLimit ->
-        lager:error("Unable to restore iptables after retry "
+        logger:error("Unable to restore iptables after retry "
                 "number: ~p",
                 [R])
       end
@@ -385,7 +385,7 @@ update_iptables6(Ruleset, Retry) ->
     IptablesRestoreRetryWaitSeconds =
     application:get_env(dog,
                 iptables_restore_retry_wait_seconds, 3),
-    lager:debug("update_iptables6"),
+    logger:debug("update_iptables6"),
     ok = backup_current_ipv6_iptables(),
     {ok, TempFile} = write_ipv6_ruleset(Ruleset),
     case apply_ipv6_ruleset(TempFile) of
@@ -394,22 +394,22 @@ update_iptables6(Ruleset, Retry) ->
       case Retry of
         R when R =< IptablesRestoreRetryLimit ->
         timer:sleep(IptablesRestoreRetryWaitSeconds * 1000),
-        lager:info("Retry count updating IPv6 iptables: ~p",
+        logger:info("Retry count updating IPv6 iptables: ~p",
                [R + 1]),
         update_iptables6(Ruleset, R + 1);
         R when R > IptablesRestoreRetryLimit ->
-        lager:error("Unable to restore iptables after retry "
+        logger:error("Unable to restore iptables after retry "
                 "number: ~p",
                 [R])
       end
     end.
 
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
-    lager:debug("Payload: ~p", [Payload]),
+    logger:debug("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
-    lager:debug("Proplist: ~p", [Proplist]),
+    logger:debug("Proplist: ~p", [Proplist]),
     UserData = proplists:get_value(user_data, Proplist),
-    lager:debug("UserData: ~p", [UserData]),
+    logger:debug("UserData: ~p", [UserData]),
     R4IpsetsRuleset = maps:get(ruleset4_ipset, UserData,
                    false),
     R6IpsetsRuleset = maps:get(ruleset6_ipset, UserData,
@@ -438,26 +438,26 @@ handle_callback(Ipsets, R4IpsetsRuleset,
     case R4IpsetsRuleset of
       false -> pass;
       _ ->
-      lager:debug("R4IpsetsRuleset: ~p", [R4IpsetsRuleset]),
+      logger:debug("R4IpsetsRuleset: ~p", [R4IpsetsRuleset]),
       ok = write_ipv4_ipsets_ruleset(R4IpsetsRuleset)
     end,
     case R6IpsetsRuleset of
       false -> pass;
       _ ->
-      lager:debug("R6IpsetsRuleset: ~p", [R6IpsetsRuleset]),
+      logger:debug("R6IpsetsRuleset: ~p", [R6IpsetsRuleset]),
       ok = write_ipv6_ipsets_ruleset(R6IpsetsRuleset)
     end,
     case R4IptablesRuleset of
       false -> pass;
       _ ->
-      lager:debug("R4IptablesRuleset: ~p",
+      logger:debug("R4IptablesRuleset: ~p",
               [R4IptablesRuleset]),
       ok = write_ipv4_iptables_ruleset(R4IptablesRuleset)
     end,
     case R6IptablesRuleset of
       false -> pass;
       _ ->
-      lager:debug("R6IptablesRuleset: ~p",
+      logger:debug("R6IptablesRuleset: ~p",
               [R6IptablesRuleset]),
       ok = write_ipv6_iptables_ruleset(R6IptablesRuleset)
     end,
@@ -465,23 +465,23 @@ handle_callback(Ipsets, R4IpsetsRuleset,
       true ->
       case R4IpsetsRuleset of
         false ->
-        lager:info("No v4 ipset ruleset to apply"), pass;
+        logger:info("No v4 ipset ruleset to apply"), pass;
         _ -> ok = update_iptables4(R4IpsetsRuleset)
       end,
       case R6IpsetsRuleset of
         false ->
-        lager:info("No v6 ipset ruleset to apply"), pass;
+        logger:info("No v6 ipset ruleset to apply"), pass;
         _ -> ok = update_iptables6(R6IpsetsRuleset)
       end;
       false ->
       case R4IptablesRuleset of
         false ->
-        lager:info("No v4 iptables ruleset to apply"), pass;
+        logger:info("No v4 iptables ruleset to apply"), pass;
         _ -> ok = update_iptables4(R4IptablesRuleset)
       end,
       case R6IptablesRuleset of
         false ->
-        lager:info("No v6 iptables ruleset to apply"), pass;
+        logger:info("No v6 iptables ruleset to apply"), pass;
         _ -> ok = update_iptables6(R6IptablesRuleset)
       end
     end.
@@ -545,7 +545,7 @@ normalize_ruleset(Ruleset) ->
 
 create_hash(Ruleset) ->
     RulesetTrimmed = normalize_ruleset(Ruleset),
-    lager:debug("RulesetTrimmed: ~p", [RulesetTrimmed]),
+    logger:debug("RulesetTrimmed: ~p", [RulesetTrimmed]),
     encode(crypto:hash(sha256, RulesetTrimmed)).
 
 -spec rule_count(Ruleset :: string()) -> number().

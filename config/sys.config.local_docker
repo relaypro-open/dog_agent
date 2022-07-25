@@ -1,7 +1,55 @@
 [
     {kernel,[
-        {inet_dist_use_interface,{127,0,0,1}}
-    ]},
+     {inet_dist_use_interface,{127,0,0,1}},
+     {logger_level, all},
+      {logger, [
+  
+        {handler, default2, logger_std_h,
+        #{
+          level => warning,
+          formatter => {flatlog,
+                          #{max_depth => 3,
+                            term_depth => 50,
+                            colored => true,
+                            template => [time," [", level,", ",mfa, ": ", line, " ]", msg,"\n"]
+        }}}},
+        {handler, disk_log_debug, logger_disk_log_h,
+          #{config => #{
+                file => "/var/log/dog_trainer/debug.log",
+                type => wrap,
+                max_no_files => 10,
+                max_no_bytes => 52428800 % 10 x 5mb
+            },
+            level => debug,
+            formatter => {flatlog, #{
+              map_depth => 3,
+              term_depth => 50,
+              template => [time," [", level,", ",mfa, ": ", line, " ]", msg,"\n"]
+            }}
+          }
+        },
+
+        %%% Disk logger for errors
+        {
+          handler, disk_log_error, logger_disk_log_h,
+          #{config => #{
+                file => "/var/log/dog_trainer/error.log",
+                type => wrap,
+                max_no_files => 10,
+                max_no_bytes => 52428800 % 10 x 5mb
+            },
+            level => error,
+            formatter => {
+              flatlog, #{
+                map_depth => 3,
+                term_depth => 50
+              }
+            }
+          }
+        }
+    ]
+
+    }]},
     {dog, [
         {version, "7342b0908e4dbf8daf70ccf3f18422c7d654c504"},
         {enforcing, true},

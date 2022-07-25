@@ -74,7 +74,7 @@ handle_call(_Request, _From, State) ->
                {stop, normal, _}.
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
-    lager:error("unknown_message: Msg: ~p, State: ~p",
+    logger:error("unknown_message: Msg: ~p, State: ~p",
         [Msg, State]),
     {noreply, State}.
 
@@ -87,7 +87,7 @@ handle_cast(Msg, State) ->
 %%----------------------------------------------------------------------
 % TODO: be more specific about Info in spec
 handle_info(Info, State) ->
-    lager:error("unknown_message: Info: ~p, State: ~p",
+    logger:error("unknown_message: Info: ~p, State: ~p",
         [Info, State]),
     {noreply, State}.
 
@@ -99,7 +99,7 @@ handle_info(Info, State) ->
 -spec terminate(_, #{}) -> {close}.
 
 terminate(Reason, State) ->
-    lager:info("terminate: Reason: ~p, State: ~p",
+    logger:info("terminate: Reason: ~p, State: ~p",
            [Reason, State]),
     {close}.
 

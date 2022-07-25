@@ -63,9 +63,9 @@ read_hash() ->
     gen_server:call(?MODULE, read_hash, 20000)
   catch 
     Class:Reason:Stacktrace -> 
-      lager:error(
+      logger:error(
               "~nStacktrace:~s",
-              [lager:pr_stacktrace(Stacktrace, {Class, Reason})]),
+              [logger:pr_stacktrace(Stacktrace, {Class, Reason})]),
       {Class, Reason} 
   end.
 
@@ -76,9 +76,9 @@ create_ipsets(Ipsets) ->
     gen_server:call(?MODULE, {create_ipsets,Ipsets}, 20000)
   catch 
     Class:Reason:Stacktrace -> 
-      lager:error(
+      logger:error(
               "~nStacktrace:~s",
-              [lager:pr_stacktrace(Stacktrace, {Class, Reason})]),
+              [logger:pr_stacktrace(Stacktrace, {Class, Reason})]),
       {Class, Reason} 
   end.
 
@@ -105,8 +105,8 @@ init(_Args) ->
                     keepalive),
     NewState = dog_config_agent:get_state(),
     dog_ips:do_watch_interfaces(NewState), %send initial force update
-    lager:error("NewState: ~p",[NewState]),
-    lager:error("hostname: ~p",[dog_state:get_hostname(NewState)]),
+    logger:error("NewState: ~p",[NewState]),
+    logger:error("hostname: ~p",[dog_state:get_hostname(NewState)]),
     %{ok, State} = dog_ips:do_watch_iptables(NewState),
     {ok, NewState}.
 
@@ -136,7 +136,7 @@ handle_call(_Request, _From, State) ->
 %    {ok, _} = dog_ips:do_watch_iptables(NewState),
 %    {reply, NewState};
 %handle_call(watch_interfaces, _From, State) ->
-%    lager:debug("State: ~p", [State]),
+%    logger:debug("State: ~p", [State]),
 %    {ok, NewState} = dog_ips:do_watch_interfaces(State),
 %    erlang:send_after(10000, self(), watch_interfaces),
 %    {reply, NewState};
@@ -152,7 +152,7 @@ handle_call(_Request, _From, State) ->
 
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
-    lager:error("unknown_message: Msg: ~p, State: ~p",
+    logger:error("unknown_message: Msg: ~p, State: ~p",
         [Msg, State]),
     {noreply, State}.
 
@@ -172,9 +172,9 @@ handle_cast(Msg, State) ->
                               dog_state:dog_state()}.
 
 handle_info(sub, State) ->
-    lager:debug("sub: ~p", [State]), {noreply, State};
+    logger:debug("sub: ~p", [State]), {noreply, State};
 handle_info(watch_interfaces, State) ->
-    lager:debug("State: ~p", [State]),
+    logger:debug("State: ~p", [State]),
     {ok, NewState} = dog_ips:do_watch_interfaces(State),
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     erlang:send_after(WatchInterfacesPollMilliseconds, self(), watch_interfaces),
@@ -185,7 +185,7 @@ handle_info(keepalive, State) ->
     erlang:send_after(KeepalivePollSeconds, self(), keepalive),
     {noreply, NewState};
 handle_info(Info, State) ->
-    lager:error("unknown_message: Info: ~p, State: ~p",
+    logger:error("unknown_message: Info: ~p, State: ~p",
         [Info, State]),
     {noreply, State}.
 
@@ -197,7 +197,7 @@ handle_info(Info, State) ->
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
 terminate(Reason, State) ->
-    lager:info("terminate: Reason: ~p, State: ~p",
+    logger:info("terminate: Reason: ~p, State: ~p",
            [Reason, State]),
     {close}.
 

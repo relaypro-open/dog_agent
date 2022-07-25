@@ -10,7 +10,7 @@
     asn1,
     public_key,
     ssl,
-    lager,
+    flatlog,
     erlexec,
     hackney,
     jsx,
