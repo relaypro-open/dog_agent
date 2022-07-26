@@ -1,5 +1,7 @@
 -module(dog_common).
 
+-include("dog.hrl").
+
 -export([
 		binary_join/2,
         inverse_map_of_lists/1,

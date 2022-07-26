@@ -1,5 +1,7 @@
 -module(dog_ipset_test).
 
+-include("dog.hrl").
+
 -export([
          ip_tester/0,
          serial_cmd_tester/0,

@@ -6,7 +6,7 @@
   
         {handler, default2, logger_std_h,
         #{
-          level => warning,
+          level => info,
           formatter => {flatlog,
                           #{max_depth => 3,
                             term_depth => 50,

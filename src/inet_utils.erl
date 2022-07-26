@@ -1,5 +1,7 @@
 -module(inet_utils).
 
+-include("dog.hrl").
+
 -export([inet_aton/1, inet_ntoa/1, inet_bits/1, mask_address/2]).
 -export([ip_between/3]).
 

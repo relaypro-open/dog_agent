@@ -1,5 +1,7 @@
 -module(dog_string).
 
+-include("dog.hrl").
+
 -export([split/2, split/3, trim/3,replace/4]).
 
 -spec split(String :: string() , Delimiter :: string()) -> list().
