@@ -1,12 +1,11 @@
-{erl_opts, [debug_info, {parse_transform, lager_transform}, nowarn_export_all]}.
+{erl_opts, [debug_info, nowarn_export_all]}.
 {deps, [
-    {lager, ".*", {git, "https://github.com/erlang-lager/lager.git", {tag, "3.9.2"}}},
     {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git", {tag, "v2.8.3"}}},
     {hackney, ".*", {git, "https://github.com/benoitc/hackney.git", {tag, "1.18.1"}}},
     {base16, {git, "https://github.com/goj/base16.git", {tag, "1.0.0"}}},
     {uuid, "2.0.0", {pkg, uuid_erl}},
-    {erldocker, ".*", {git, "https://github.com/Phonebooth/erldocker.git", {branch, "master"}}},
-    {turtle, {git, "https://github.com/relaypro-open/turtle.git", {branch, "feature/exometer_1.6.1"} }},
+    {erldocker, ".*", {git, "https://github.com/Phonebooth/erldocker.git", {branch, "feature/remove_lager"}}},
+    {turtle, {git, "https://github.com/relaypro-open/turtle.git", {branch, "feature/remove_lager"} }},
     {jsn, "2.1.4"},
     {bbmustache, "1.11.0"}
 ]}.

@@ -31,6 +31,7 @@ RUN apt-get install -y iptables ipset
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
+RUN mkdir -p /etc/iptables
 COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application

@@ -43,6 +43,7 @@ ips_publisher_spec() ->
     PublisherName = ips_publisher,
     ConnName = default, 
     AMQPDecls = [
+     #'exchange.declare' {exchange = <<"ips">>, type = <<"topic">>, durable = true},
      #'queue.declare' {queue = <<"ips">>, auto_delete = false, durable = true},
      #'queue.bind' {queue = <<"ips">>, exchange = <<"ips">>, routing_key = <<"#">>}
     ],
@@ -80,6 +81,8 @@ iptables_service_spec(Environment, Location, Group, Hostkey) ->
       init_state => #{ },
       declarations =>
 		  [
+          #'exchange.declare' {exchange = <<"ipsets">>, type = <<"fanout">>, durable = true},
+          #'exchange.declare' {exchange = <<"iptables">>, type = <<"topic">>, durable = true},
           #'queue.declare' {queue = QueueName , auto_delete = true, durable = true},
           #'queue.bind' {queue = QueueName, exchange = <<"ipsets">>, routing_key = <<"fanout">> },
           #'queue.bind' {queue = QueueName, exchange = <<"iptables">>, routing_key = HostRoutingKey },
@@ -103,6 +106,7 @@ config_service_spec(Hostkey) ->
       init_state => #{ },
       declarations =>
 		  [
+          #'exchange.declare' {exchange = <<"config">>, type = <<"direct">>, durable = true},
           #'queue.declare' {queue = QueueName , auto_delete = true, durable = true},
           #'queue.bind' {queue = QueueName, exchange = <<"config">>, routing_key = Hostkey }
 		], 
@@ -127,6 +131,7 @@ file_transfer_service_spec(Environment, Location, Group, Hostkey) ->
       init_state => #{ },
       declarations =>
 		  [
+            #'exchange.declare' {exchange = <<"file_transfer">>, type = <<"topic">>, durable = true},
             #'queue.declare' {queue = QueueName, auto_delete = true, durable = true},
             #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = GroupRoutingKey},
             #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = HostRoutingKey}
