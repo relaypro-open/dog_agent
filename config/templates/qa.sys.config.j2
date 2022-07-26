@@ -10,8 +10,7 @@
           formatter => {flatlog,
                           #{max_depth => 3,
                             term_depth => 50,
-                            colored => true,
-                            template => [time," [", level,", ",mfa, ": ", line, " ]", msg,"\n"]
+                            colored => true
         }}}},
         {handler, disk_log_debug, logger_disk_log_h,
           #{config => #{
@@ -23,8 +22,7 @@
             level => info,
             formatter => {flatlog, #{
               map_depth => 3,
-              term_depth => 50,
-              template => [time," [", level,", ",mfa, ": ", line, " ]", msg,"\n"]
+              term_depth => 50
             }}
           }
         },
