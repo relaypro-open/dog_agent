@@ -292,7 +292,7 @@ to_map(State) ->
      }.
 
 from_map(StateMap) ->
-    logger:debug("StateMap: ~p",[StateMap]),
+    ?LOG_DEBUG("StateMap: ~p",[StateMap]),
     #dog_state{
         name = maps:get(<<"name">>,StateMap), 
         interfaces = maps:get(<<"interfaces">>,StateMap), 

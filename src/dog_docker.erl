@@ -1,7 +1,6 @@
 -module(dog_docker).
 
-%-include_lib("eunit/include/eunit.hrl").
-
+-include("dog.hrl").
 
 -export([
          any_docker_containers/0,
@@ -20,10 +19,10 @@ is_docker_instance() ->
  DockerSocketUrl = maps:get(docker_http,maps:from_list(application:get_all_env(erldocker)),<<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>),
  case hackney:get(DockerSocketUrl) of
    {ok,_,_,_} -> 
-     logger:info("is_docker_instance: true"),
+     ?LOG_INFO("is_docker_instance: true"),
      true;
    {error, _} -> 
-     logger:info("is_docker_instance: false"),
+     ?LOG_INFO("is_docker_instance: false"),
      false
  end.
 

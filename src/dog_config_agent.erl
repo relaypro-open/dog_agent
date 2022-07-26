@@ -166,7 +166,7 @@ init(_Args) ->
     UpdateType = force,
     {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
         {ok, ConfigMap} ->
-            logger:debug("ConfigMap: ~p", [ConfigMap]),
+            ?LOG_DEBUG("ConfigMap: ~p", [ConfigMap]),
             {
               maps:get(<<"group">>, ConfigMap),
               maps:get(<<"location">>, ConfigMap),
@@ -187,7 +187,7 @@ init(_Args) ->
       _ ->
         Hostkey
     end,
-    logger:error("Hostkey: ~p",[Hostkey1]),
+    ?LOG_ERROR("Hostkey: ~p",[Hostkey1]),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
@@ -198,12 +198,12 @@ init(_Args) ->
                                Ec2AvailabilityZone,
                                Ec2SecurityGroupIds,
                                Ec2OwnerId,Ec2InstanceTags),
-    logger:debug("State: ~p", [State]),
+    ?LOG_DEBUG("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
     dog_interfaces:publish_to_queue(StateMap),
-    logger:debug("StateMap: ~p~n", [StateMap]),
-    logger:debug("State: ~p", [State]),
-    logger:error("force update"),
+    ?LOG_DEBUG("StateMap: ~p~n", [StateMap]),
+    ?LOG_DEBUG("State: ~p", [State]),
+    ?LOG_ERROR("force update"),
   {ok, State}.
 
 %% ------------------------------------------------------------------
@@ -295,7 +295,7 @@ handle_call(watch_config, _From, State) ->
                {stop, normal, _}.
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
-    logger:error("unknown_message: Msg: ~p, State: ~p",
+    ?LOG_ERROR("unknown_message: Msg: ~p, State: ~p",
         [Msg, State]),
     {noreply, State}.
 
@@ -308,7 +308,7 @@ handle_cast(Msg, State) ->
 %%----------------------------------------------------------------------
 % TODO: be more specific about Info in spec
 handle_info(Info, State) ->
-    logger:error("unknown_message: Info: ~p, State: ~p",
+    ?LOG_ERROR("unknown_message: Info: ~p, State: ~p",
         [Info, State]),
     {noreply, State}.
 
@@ -320,7 +320,7 @@ handle_info(Info, State) ->
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
 terminate(Reason, State) ->
-    logger:info("terminate: Reason: ~p, State: ~p",
+    ?LOG_INFO("terminate: Reason: ~p, State: ~p",
            [Reason, State]),
     {close}.
 

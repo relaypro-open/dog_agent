@@ -1,4 +1,5 @@
 -module(dog_turtle_sup).
+-include("dog.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
 -export([
@@ -23,8 +24,6 @@
        ]).
 
 -behaviour(supervisor).
-
--define(SERVER, ?MODULE).
 
 -spec start_link() -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link() ->
@@ -181,7 +180,7 @@ restart_mq_services(Environment, Location, Group, Hostkey) ->
     restart_ips_agent().
 
 start_config_service(Hostkey) ->
-    logger:debug("Hostkey: ~p",[Hostkey]),
+    ?LOG_DEBUG("Hostkey: ~p",[Hostkey]),
     turtle_service:new(dog_turtle_sup,config_service_spec(Hostkey)).
 
 stop_config_service() ->
