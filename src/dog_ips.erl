@@ -1,5 +1,7 @@
 -module(dog_ips).
 
+-include("dog.hrl").
+
 -export([
          do_get_group_routing_key/1,
          do_get_host_routing_key/1,
