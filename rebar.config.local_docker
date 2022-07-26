@@ -170,8 +170,7 @@
 {plugins, [
     {relflow, ".*", {git, "https://github.com/RJ/relflow.git", {branch, "master"}}},
     rebar3_run,
-    rebar3_hex,
-    rebar3_elixir
+    rebar3_hex
 ]}.
 
 %{eunit_opts, [verbose]}.
