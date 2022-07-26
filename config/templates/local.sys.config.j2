@@ -57,9 +57,7 @@
     ]},
     {lager, [
         {handlers, [
-            {lager_file_backend, [{file, "/var/log/dog/debug.log"}, {level, debug}]},
-            {lager_file_backend, [{file, "/var/log/dog/error.log"}, {level, error}]},
-            {lager_file_backend, [{file, "/var/log/dog/console.log"}, {level, info }]}
+            {lager_file_backend, [{file, "/var/log/dog/lager.log"}, {level, info }]}
         ]},
         {crash_log, "/var/log/dog/crash.log"},
         {tracefiles, [
