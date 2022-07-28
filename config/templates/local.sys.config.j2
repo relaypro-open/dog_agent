@@ -3,7 +3,7 @@
      {inet_dist_use_interface,{127,0,0,1}},
       {logger, [
   
-        {handler, disk_log_debug, logger_disk_log_h,
+        {handler, default, logger_disk_log_h,
           #{config => #{
                 file => "/var/log/dog/debug.log",
                 type => wrap,

@@ -52,19 +52,6 @@
         {enforcing, true},
         {use_ipsets, true}
     ]},
-    {lager, [
-        {handlers, [
-            {lager_file_backend, [{file, "/var/log/dog/lager.log"}, {level, debug}]}
-        ]},
-        {crash_log, "/var/log/dog/crash.log"},
-        {tracefiles, [
-                ]},
-        {async_threshold, 10000},
-        {sieve_threshold, 5000},
-        {sieve_window, 100},
-        {colored, true},
-        {error_logger_redirect, true}
-    ]},
     {turtle, [
         {connection_config, [
             #{
