@@ -79,7 +79,7 @@ is_ec2_instance() ->
         _ ->
             Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/",
             Method = get,
-            Headers = [],
+	    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
             Payload = <<>>,
             Options = [{connect_timeout,1000}],
             case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -181,7 +181,7 @@ ec2_public_ipv4() ->
 ec2_availability_zone() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/placement/availability-zone",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -203,7 +203,7 @@ ec2_availability_zone() ->
 ec2_instance_id() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/instance-id",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -242,7 +242,7 @@ ec2_security_group_ids() ->
 ec2_security_group_ids(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/security-group-ids",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -283,7 +283,7 @@ ec2_owner_id() ->
 ec2_owner_id(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/owner-id",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -307,7 +307,7 @@ ec2_owner_id(Mac) ->
 ec2_public_ipv4(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/public-ipv4s",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -333,7 +333,7 @@ ec2_public_ipv4(Mac) ->
 ec2_macs() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -478,7 +478,7 @@ ip_to_queue() ->
 ec2_instance_tag(Tag) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/tags/instance/" ++ Tag,
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
@@ -502,7 +502,7 @@ ec2_instance_tag(Tag) ->
 ec2_instance_tags() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/tags/instance/",
     Method = get,
-    Headers = [],
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
     Options = [{connect_timeout,1000}],
     case hackney:request(Method, Url, Headers, Payload, Options) of
