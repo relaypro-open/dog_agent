@@ -210,7 +210,22 @@ watch_config() ->
 
 init(_Args) ->
     timer:sleep(15000),
-    
+    WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
+    _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
+                  watch_interfaces),
+    KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
+    _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
+                    keepalive),
+    State = init_state(),
+    ?LOG_DEBUG("State: ~p", [State]),
+    StateMap = dog_state:to_map(State),
+    ?LOG_DEBUG("StateMap: ~p~n", [StateMap]),
+    ?LOG_DEBUG("force update"),
+    dog_interfaces:publish_to_queue(StateMap), %force update
+    {ok, State}.
+
+
+init_state() ->
     ok = dog_config:do_init_config(),
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
@@ -262,25 +277,7 @@ init(_Args) ->
                                Ec2AvailabilityZone,
                                Ec2SecurityGroupIds,
                                Ec2OwnerId,Ec2InstanceTags),
-    ?LOG_DEBUG("State: ~p", [State]),
-    StateMap = dog_state:to_map(State),
-    %dog_interfaces:publish_to_queue(StateMap),
-    %?LOG_DEBUG("force update"),
-    %dog_ips:do_watch_interfaces(State), %send initial force update
-    ?LOG_DEBUG("1"),
-    WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
-    ?LOG_DEBUG("2"),
-    _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
-                  watch_interfaces),
-    ?LOG_DEBUG("3"),
-    KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
-    ?LOG_DEBUG("4"),
-    _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
-                    keepalive),
-    %{ok, State} = dog_ips:do_watch_iptables(NewState),
-    ?LOG_DEBUG("StateMap: ~p~n", [StateMap]),
-    ?LOG_DEBUG("State: ~p", [State]),
-    {ok, State}.
+    State.
 
 %
 %%----------------------------------------------------------------------

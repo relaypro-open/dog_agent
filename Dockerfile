@@ -27,7 +27,7 @@ RUN ./rebar3 release
 FROM base as deploy
 
 RUN apt-get update
-RUN apt-get install -y iptables ipset
+RUN apt-get install -y iptables ipset less ack
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
