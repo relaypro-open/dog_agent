@@ -251,7 +251,7 @@ init(_Args) ->
       _ ->
         Hostkey
     end,
-    ?LOG_ERROR("Hostkey: ~p",[Hostkey1]),
+    ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
