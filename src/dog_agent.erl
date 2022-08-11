@@ -1,4 +1,4 @@
--module(dog_config_agent).
+-module(dog_agent).
 
 -behaviour(gen_server).
 
@@ -11,6 +11,13 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
+
+-export([
+     keepalive/0, 
+     start_link/0,  watch_interfaces/0,
+     watch_iptables/0,
+     create_ipsets/1, read_hash/0
+  ]).
 
 -export([
          get_group_routing_key/0,
@@ -31,7 +38,6 @@
          set_interfaces/1,
          set_location/1,
          set_state/1,
-         start_link/0,
          watch_config/0
         ]).
 
@@ -41,6 +47,61 @@
 
 -export([code_change/3, handle_call/3, handle_cast/2,
      handle_info/2, init/1, terminate/2]).
+
+%% ------------------------------------------------------------------
+%% test Function Exports
+%% ------------------------------------------------------------------
+
+%% ------------------------------------------------------------------
+%% API Function Definitions
+%% ------------------------------------------------------------------
+
+-spec start_link() -> {ok, Pid :: pid()} | ignore |
+              {error, {already_started, Pid :: pid()} | term()}.
+
+start_link() ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [],
+              []).
+
+-spec watch_iptables() -> ok.
+
+watch_iptables() ->
+    gen_server:call(?MODULE, watch_iptables).
+
+-spec watch_interfaces() -> ok.
+
+watch_interfaces() ->
+    gen_server:call(?MODULE, watch_interfaces).
+
+-spec keepalive() -> ok.
+
+keepalive() -> gen_server:call(?MODULE, keepalive).
+
+-spec read_hash() -> Hash :: list().
+
+read_hash() ->
+  try 
+    gen_server:call(?MODULE, read_hash, 20000)
+  catch 
+    Class:Reason:Stacktrace -> 
+      ?LOG_ERROR(
+              "~nStacktrace:~s",
+              [Stacktrace]),
+      {Class, Reason} 
+  end.
+
+-spec create_ipsets(Ipsets :: iolist()) -> ok.
+
+create_ipsets(Ipsets) ->
+  try 
+    gen_server:call(?MODULE, {create_ipsets,Ipsets}, 20000)
+  catch 
+    Class:Reason:Stacktrace -> 
+      ?LOG_ERROR(
+              "~nStacktrace:~s",
+              [Stacktrace]),
+      {Class, Reason} 
+  end.
 
 -spec set_state(State :: dog_state:dog_state()) -> {ok,
                             State ::
@@ -137,7 +198,6 @@ watch_config() ->
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
-
 %%----------------------------------------------------------------------
 %% Func: init/1
 %% Returns: {ok, State} |
@@ -145,8 +205,12 @@ watch_config() ->
 %%          ignore |
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
+
+-spec init(term()) -> no_return().
+
 init(_Args) ->
     timer:sleep(15000),
+    
     ok = dog_config:do_init_config(),
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
@@ -200,22 +264,24 @@ init(_Args) ->
                                Ec2OwnerId,Ec2InstanceTags),
     ?LOG_DEBUG("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
-    dog_interfaces:publish_to_queue(StateMap),
+    %dog_interfaces:publish_to_queue(StateMap),
+    %?LOG_DEBUG("force update"),
+    %dog_ips:do_watch_interfaces(State), %send initial force update
+    ?LOG_DEBUG("1"),
+    WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
+    ?LOG_DEBUG("2"),
+    _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
+                  watch_interfaces),
+    ?LOG_DEBUG("3"),
+    KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
+    ?LOG_DEBUG("4"),
+    _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
+                    keepalive),
+    %{ok, State} = dog_ips:do_watch_iptables(NewState),
     ?LOG_DEBUG("StateMap: ~p~n", [StateMap]),
     ?LOG_DEBUG("State: ~p", [State]),
-    ?LOG_ERROR("force update"),
-  {ok, State}.
+    {ok, State}.
 
-%% ------------------------------------------------------------------
-%% API Function Definitions
-%% ------------------------------------------------------------------
-
--spec start_link() -> {ok, Pid :: pid()} | ignore |
-              {error, {already_started, Pid :: pid()} | term()}.
-
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [],
-              []).
 %
 %%----------------------------------------------------------------------
 %% Func: handle_call/3
@@ -229,6 +295,11 @@ start_link() ->
 -spec handle_call(term(), {pid(), term()},
           State :: dog_state:dog_state()) -> {reply, ok, any()}.
 
+handle_call({create_ipsets,Ipsets}, _From, State) ->
+    dog_ipset:create_ipsets(Ipsets),
+    {reply, ok, State};
+handle_call(read_hash, _From, State) ->
+    Hash = dog_ipset:read_hash(), {reply, Hash, State};
 handle_call(get_state, _From, State) ->
     {reply, State, State};
 handle_call({set_state, State}, _From, _OldState) ->
@@ -283,7 +354,9 @@ handle_call(group_routing_key, _From, State) ->
     {reply, RoutingKey, State};
 handle_call(watch_config, _From, State) ->
     dog_config:do_watch_config(), 
-    {reply, State}.
+    {reply, State};
+handle_call(_Request, _From, State) ->
+    {reply, ok, State}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_cast/2
@@ -293,12 +366,12 @@ handle_call(watch_config, _From, State) ->
 %%----------------------------------------------------------------------
 -spec handle_cast(_, _) -> {noreply, _} |
                {stop, normal, _}.
+
 handle_cast(stop, State) -> {stop, normal, State};
 handle_cast(Msg, State) ->
     ?LOG_ERROR("unknown_message: Msg: ~p, State: ~p",
         [Msg, State]),
     {noreply, State}.
-
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/2
@@ -307,6 +380,28 @@ handle_cast(Msg, State) ->
 %%          {stop, Reason, State} (terminate/2 is called)
 %%----------------------------------------------------------------------
 % TODO: be more specific about Info in spec
+-spec handle_info(term(),
+          State :: dog_state:dog_state()) -> {stop, normal,
+                              State ::
+                              dog_state:dog_state()} |
+                             {noreply,
+                              State ::
+                              dog_state:dog_state()}.
+
+handle_info(sub, State) ->
+    ?LOG_DEBUG("sub: ~p", [State]), {noreply, State};
+handle_info(watch_interfaces, State) ->
+    ?LOG_DEBUG("State: ~p", [State]),
+    {ok, NewState} = dog_ips:do_watch_interfaces(State),
+    WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
+    erlang:send_after(WatchInterfacesPollMilliseconds, self(), watch_interfaces),
+    {noreply, NewState};
+handle_info(keepalive, State) ->
+    ?LOG_DEBUG("State: ~p", [State]),
+    {ok, NewState} = dog_ips:do_keepalive(State),
+    KeepalivePollSeconds = application:get_env(dog, keepalive_poll_seconds, 60) * 1000,
+    erlang:send_after(KeepalivePollSeconds, self(), keepalive),
+    {noreply, NewState};
 handle_info(Info, State) ->
     ?LOG_ERROR("unknown_message: Info: ~p, State: ~p",
         [Info, State]),

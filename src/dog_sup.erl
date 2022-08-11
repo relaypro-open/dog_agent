@@ -18,13 +18,9 @@ init(_Args) ->
           #{id => dog_turtle_sup,
             start => {dog_turtle_sup, start_link, []},
             type => supervisor},
-          #{id => dog_config_agent,
-            start => {dog_config_agent, start_link, []},
+          #{id => dog_agent,
+            start => {dog_agent, start_link, []},
             restart => permanent, shutdown => 5000, type => worker,
-            modules => [dog_config_agent]},
-          #{id => dog_ips_agent,
-            start => {dog_ips_agent, start_link, []},
-            restart => permanent, shutdown => 5000, type => worker,
-            modules => [dog_ips_agent]}
+            modules => [dog_agent]}
           ],
     {ok, {SupFlags, ChildSpecs}}.

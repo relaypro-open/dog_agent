@@ -1,6 +1,6 @@
 -module(supervisory_tree).
 
--include("dog_trainer.hrl"). 
+-include("dog.hrl"). 
 
 
 -export([

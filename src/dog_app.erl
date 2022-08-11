@@ -33,14 +33,3 @@ stop(_State) -> ok.
 get_version() ->
     {ok, Version} = application:get_env(dog, version),
     {ok, binary:list_to_bin(Version)}.
-
-write_pid_file() ->
-    FileName = (?PID_FILE),
-    Pid = os:getpid(),
-    case file:open(FileName, [write]) of
-      {ok, File} -> file:write(File, Pid), file:close(File);
-      {error, Error} ->
-      ?LOG_ERROR("unable to open pid file for writing "
-              "~p~n",
-              [Error])
-    end.

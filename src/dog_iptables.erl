@@ -431,7 +431,7 @@ handle_callback(Ipsets, R4IpsetsRuleset,
       [] -> pass;
       _ ->
       case application:get_env(dog, use_ipsets, true) of
-        true -> ok = dog_ips_agent:create_ipsets(Ipsets);
+        true -> ok = dog_agent:create_ipsets(Ipsets);
         false -> pass
       end
     end,

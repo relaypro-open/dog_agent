@@ -51,23 +51,6 @@ ips_publisher_spec() ->
             #{ confirms => true, passive => false, rpc => false }),
 	AMQPPoolChildSpec.
 
-%ipset_service_spec() ->
-%    Config = #{
-%      name => ipset_service,
-%      connection => default,
-%      function => fun dog_config_agent:loop/4,
-%      handle_info => fun dog_config_agent:handle_info/2,
-%      init_state => #{ },
-%      declarations =>
-%		  [
-%		], 
-%      subscriber_count => 1,
-%      prefetch_count => 1,
-%      passive => false
-%    },
-%    ServiceSpec = turtle_service:child_spec(Config),
-%        ServiceSpec.
-
 iptables_service_spec(Environment, Location, Group, Hostkey) ->
     QueueName = erlang:iolist_to_binary([<<"iptables.">>, Hostkey]),
     GroupRoutingKey = erlang:iolist_to_binary([Environment,".",Location,".",Group,".*"]),
@@ -101,7 +84,7 @@ config_service_spec(Hostkey) ->
       name => dog_config_service,
       connection => default,
       function => fun dog_config:subscriber_loop/4,
-      handle_info => fun dog_config_agent:handle_info/2,
+      handle_info => fun dog_agent:handle_info/2,
       init_state => #{ },
       declarations =>
 		  [
@@ -206,11 +189,11 @@ stop_ips_publisher() ->
     stop(dog_turtle_sup,ips_publisher).
 
 restart_ips_agent() ->
-    supervisor:restart_child(dog_sup, dog_ips_agent),
+    supervisor:restart_child(dog_sup, dog_agent),
     ok.
 
 stop_ips_agent() ->
-    supervisor:terminate_child(dog_sup, dog_ips_agent),
+    supervisor:terminate_child(dog_sup, dog_agent),
     ok.
 
 stop(Supervisor,Name) ->
