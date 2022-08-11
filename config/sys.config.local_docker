@@ -1,4 +1,9 @@
 [
+    {dog, [
+        {version, "local_docker"},
+        {enforcing, true},
+        {use_ipsets, true}
+    ]},
     {kernel,[
      {inet_dist_use_interface,{127,0,0,1}},
       {logger_level, all},
@@ -17,7 +22,7 @@
                 file => "/var/log/dog/debug.log",
                 type => wrap,
                 max_no_files => 5,
-                max_no_bytes => 10000000 % 10 x 5mb
+                max_no_bytes => 10000000
             },
             level => debug,
             formatter => {flatlog, #{
@@ -34,7 +39,7 @@
                 file => "/var/log/dog/error.log",
                 type => wrap,
                 max_no_files => 5,
-                max_no_bytes => 10000000 % 10 x 5mb
+                max_no_bytes => 10000000
             },
             level => error,
             formatter => {
@@ -48,11 +53,6 @@
     ]
 
     }]},
-    {dog, [
-        {version, "7342b0908e4dbf8daf70ccf3f18422c7d654c504"},
-        {enforcing, true},
-        {use_ipsets, true}
-    ]},
     {turtle, [
         {connection_config, [
             #{
@@ -74,9 +74,6 @@
     {erldocker, [
         {docker_http, <<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>}
     ]},
-    %{erlexec, [
-    %    {user, "root"}, {limit_users, ["root","dog"]}
-    %]}
     {erlexec, [
 	    {debug, 1},
 	    {verbose, true},
@@ -87,20 +84,3 @@
 	    {limit_users, ["root"]}
   ]}
 ].
-        
-%{logger,
-        %   [
-        %     %% Console logger
-        %       {handler, default, logger_std_h, #{ formatter => {logger_formatter, #{ }}}},
-        %        %% Disk logger for errors
-        %        {handler, disk_log, logger_disk_log_h, #{ formatter => {logger_formatter, #{ }}},
-        %           #{config => #{
-        %                file => "/var/log/dog/console.log",
-        %                type => wrap,
-        %                max_no_files => 10,
-        %                max_no_bytes => 52428800
-        %             },
-        %            level => info
-        %            }
-        %        }
-        %   ]}
