@@ -1,16 +1,30 @@
 [
+    {dog, [
+        {version, "7342b0908e4dbf8daf70ccf3f18422c7d654c504"},
+        {enforcing, true},
+        {use_ipsets, true}
+    ]},
     {kernel,[
      {inet_dist_use_interface,{127,0,0,1}},
+      {logger_level, all},
       {logger, [
   
-        {handler, default, logger_disk_log_h,
+        {handler, default, logger_std_h,
+        #{
+          level => error,
+          formatter => {flatlog,
+                          #{max_depth => 3,
+                            term_depth => 50,
+                            colored => true
+        }}}},
+        {handler, disk_log_info, logger_disk_log_h,
           #{config => #{
-                file => "/var/log/dog/debug.log",
+                file => "/var/log/dog/info.log",
                 type => wrap,
                 max_no_files => 5,
-                max_no_bytes => 10000000 % 10 x 5mb
+                max_no_bytes => 10000000
             },
-            level => debug,
+            level => info,
             formatter => {flatlog, #{
               map_depth => 3,
               term_depth => 50
@@ -25,7 +39,7 @@
                 file => "/var/log/dog/error.log",
                 type => wrap,
                 max_no_files => 5,
-                max_no_bytes => 10000000 % 10 x 5mb
+                max_no_bytes => 10000000
             },
             level => error,
             formatter => {
@@ -37,13 +51,7 @@
           }
         }
     ]
-
     }]},
-    {dog, [
-        {version, "7342b0908e4dbf8daf70ccf3f18422c7d654c504"},
-        {enforcing, true},
-        {use_ipsets, true}
-    ]},
     {lager, [
         {handlers, [
             {lager_file_backend, [{file, "/var/log/dog/lager.log"}, {level, info }]}
