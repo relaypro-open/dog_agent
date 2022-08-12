@@ -183,24 +183,11 @@ ec2_public_ipv4() ->
 
 -spec ec2_region() -> string().
 ec2_region() ->
-    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/placement/region",
-    Method = get,
-    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
-    Payload = <<>>,
-    Options = [{connect_timeout,1000}],
-    case hackney:request(Method, Url, Headers, Payload, Options) of
-        {error, _Error} ->
-            ?LOG_ERROR("Error getting ec2_region"),
-            <<"">>;
-        {ok, StatusCode, _RespHeaders, ClientRef} ->
-            case StatusCode of
-                200 ->
-                    {ok,InstanceId} = hackney:body(ClientRef),
-                    InstanceId;
-                _ ->
-                    ?LOG_ERROR("Error getting ec2_region"),
-                    <<"">>
-            end
+    case ec2_availability_zone() of
+	    <<"">> -> 
+		    <<"">>;
+	    AZ ->
+	            string:slice(AZ,0,string:length(AZ) - 1)
     end.
 
 -spec ec2_availability_zone() -> string().
