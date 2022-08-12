@@ -260,7 +260,9 @@ hackney_ec2() ->
     PublicIp = public_ip(),
     application:unset_env(dog, is_ec2_instance),
     meck:expect(hackney, request,
-                fun(get, "http://169.254.169.254/latest/meta-data/placement/availability-zone", _, _, _) ->
+                fun(get, "http://169.254.169.254/latest/meta-data/placement/region", _, _, _) ->
+                        {ok, 200, [], region};
+		   (get, "http://169.254.169.254/latest/meta-data/placement/availability-zone", _, _, _) ->
                         {ok, 200, [], availability_zone};
                    (get, "http://169.254.169.254/latest/meta-data/instance-id", _, _, _) ->
                         {ok, 200, [], instance_id};
@@ -278,7 +280,8 @@ hackney_ec2() ->
                 end),
     meck:expect(hackney, get, fun(<<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>) -> {error, meck} end),
     meck:expect(hackney, body,
-                fun(availability_zone) -> {ok, "availability-zone"};
+                fun(region) -> {ok, "region"};
+		   (availability_zone) -> {ok, "availability-zone"};
                    (instance_id) -> {ok, "instance-id"};
                    (macs) -> {ok, Mac ++ "/"};
                    ('public-ipv4s') -> {ok, PublicIp};

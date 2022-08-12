@@ -230,7 +230,7 @@ init_state() ->
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
-    {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
+    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
     OS_Info = dog_interfaces:os_info(),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
     Hash4Ipsets =
@@ -275,9 +275,10 @@ init_state() ->
                 Hash4Iptables, Hash6Iptables,
                 Provider, UpdateType,
                 IpsetHash,Ec2InstanceId,
-                               Ec2AvailabilityZone,
-                               Ec2SecurityGroupIds,
-                               Ec2OwnerId,Ec2InstanceTags,OS_Info),
+		Ec2Region,
+	        Ec2AvailabilityZone,
+	        Ec2SecurityGroupIds,
+	        Ec2OwnerId,Ec2InstanceTags,OS_Info),
     State.
 
 %

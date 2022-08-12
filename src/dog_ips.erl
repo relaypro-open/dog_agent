@@ -58,7 +58,7 @@ do_get_host_routing_key(State) ->
 do_watch_interfaces(StateOld) ->
     %?LOG_INFO("State0: ~p", [State0]),
     Provider = dog_state:get_provider(StateOld),
-    {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
+    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
     OS_Info = dog_interfaces:os_info(),
     HostnameOld = dog_state:get_hostname(StateOld),
     InterfacesOld = dog_state:get_interfaces(StateOld),
@@ -82,6 +82,7 @@ do_watch_interfaces(StateOld) ->
     UpdateType = update,
     StateNew = dog_state:from_map(
                  #{
+		    <<"ec2_region">> => Ec2Region,
                     <<"ec2_availability_zone">> => Ec2AvailabilityZone,
                     <<"ec2_instance_id">> => Ec2InstanceId,
                     <<"ec2_owner_id">> => Ec2OwnerId,

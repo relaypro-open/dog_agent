@@ -51,6 +51,7 @@ dog_state_test_() ->
               , ?_assertMatch(ok, dog_state:get_version(dog_state:set_version(State, ok)))
               , ?_assertMatch(ok, dog_state:get_ec2_instance_tags(dog_state:set_ec2_instance_tags(State, ok)))
               , ?_assertMatch(ok, dog_state:get_os_info(dog_state:set_os_info(State, ok)))
+              , ?_assertMatch(ok, dog_state:get_ec2_region(dog_state:set_ec2_region(State, ok)))
              ]
      end}.
 
@@ -69,7 +70,8 @@ setup() ->
 	      <<"3">>,                
 	      <<"ec2">>,                  
 	      <<"updatetype">>,          
-	      <<"4">>,                
+	      <<"4">>, 
+	      <<"region">>,
 	      <<"instance-id">>,                                
 	      <<"availability-zone">>,   
 	      [<<"security-group-id">>], 

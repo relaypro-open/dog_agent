@@ -12,6 +12,7 @@
         ec2_owner_id/0,
         ec2_instance_tags/0,
         ec2_instance_tag/1,
+	ec2_region/0,
         fqdn/0,
         get_environment_key/0, 
         get_fqdn/0,
@@ -128,6 +129,7 @@ ec2_info() ->
     case is_ec2_instance() of
         true ->
             {
+	     ec2_region(),
              ec2_instance_id(),
              ec2_availability_zone(),
              ec2_security_group_ids(),
@@ -136,6 +138,7 @@ ec2_info() ->
              };
         false ->
             {
+	     <<"">>,
              <<"">>,
              <<"">>,
              <<"">>,
@@ -175,6 +178,28 @@ ec2_public_ipv4() ->
                        true ->
                            {error, unknown}
                     end
+            end
+    end.
+
+-spec ec2_region() -> string().
+ec2_region() ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/placement/region",
+    Method = get,
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            ?LOG_ERROR("Error getting ec2_region"),
+            <<"">>;
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,InstanceId} = hackney:body(ClientRef),
+                    InstanceId;
+                _ ->
+                    ?LOG_ERROR("Error getting ec2_region"),
+                    <<"">>
             end
     end.
 

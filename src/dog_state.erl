@@ -10,11 +10,12 @@
         ]).
 
 -export([
-         dog_state/20,
+         dog_state/21,
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
          get_ec2_instance_tags/1,
          get_ec2_owner_id/1,
+         get_ec2_region/1,
          get_ec2_security_group_ids/1,
          get_environment/1,
          get_group/1, 
@@ -34,6 +35,7 @@
          set_ec2_availability_zone/2,
          set_ec2_instance_id/2,
          set_ec2_instance_tags/2,
+	 set_ec2_region/2,
          set_ec2_security_group_ids/2,
          set_ec2_owner_id/2,
          set_environment/2, 
@@ -57,6 +59,7 @@
 -type ec2_instance_id() :: string().
 -type ec2_instance_tags() :: map().
 -type ec2_owner_id() :: string().
+-type ec2_region() :: string().
 -type ec2_security_group_ids() :: list().
 -type environment() :: binary().
 -type group() :: binary().
@@ -74,7 +77,7 @@
     {group, name, location, environment, hostkey,
      interfaces, version, hash4_ipsets, hash6_ipsets,
      hash4_iptables, hash6_iptables, provider, updatetype,
-     ipset_hash,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id,
+     ipset_hash,ec2_region,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id,
      ec2_instance_tags,os_info}).
 
 -type dog_state() :: #dog_state{}.
@@ -82,7 +85,8 @@
 dog_state(Group, Hostname, Location, Environment,
       Hostkey, Interfaces, Version, Hash4Ipsets, Hash6Ipsets,
       Hash4Iptables, Hash6Iptables, Provider, UpdateType,
-      IpsetHash, Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, OS_Info) ->
+      IpsetHash, Ec2Region, Ec2InstanceId, Ec2AvailabilityZone, 
+      Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, OS_Info) ->
     #dog_state{group = Group, name = Hostname,
            location = Location, environment = Environment,
            hostkey = Hostkey, interfaces = Interfaces,
@@ -91,6 +95,7 @@ dog_state(Group, Hostname, Location, Environment,
            hash4_iptables = Hash4Iptables,
            hash6_iptables = Hash6Iptables, provider = Provider,
            updatetype = UpdateType, ipset_hash = IpsetHash,
+	   ec2_region = Ec2Region,
            ec2_instance_id = Ec2InstanceId,
            ec2_availability_zone = Ec2AvailabilityZone,
            ec2_security_group_ids = Ec2SecurityGroupIds,
@@ -225,6 +230,14 @@ get_ipset_hash(State) -> State#dog_state.ipset_hash.
 set_ipset_hash(State, IpsetHash) ->
     State#dog_state{ipset_hash = IpsetHash}.
 
+-spec get_ec2_region(State :: dog_state()) -> string().
+get_ec2_region(State) -> State#dog_state.ec2_region.
+
+-spec set_ec2_region(State :: dog_state(),
+            Ec2InstanceId :: ec2_region()) -> dog_state().
+set_ec2_region(State, Ec2InstanceId) ->
+    State#dog_state{ec2_region = Ec2InstanceId}.
+
 -spec get_ec2_instance_id(State :: dog_state()) -> string().
 get_ec2_instance_id(State) -> State#dog_state.ec2_instance_id.
 
@@ -281,6 +294,7 @@ to_map(State) ->
       <<"provider">> => State#dog_state.provider,
       <<"updatetype">> => State#dog_state.updatetype,
       <<"ipset_hash">> => State#dog_state.ipset_hash,
+      <<"ec2_region">> => State#dog_state.ec2_region,
       <<"ec2_instance_id">> => State#dog_state.ec2_instance_id,
       <<"ec2_availability_zone">> => State#dog_state.ec2_availability_zone,
       <<"ec2_security_group_ids">> => State#dog_state.ec2_security_group_ids,
@@ -306,6 +320,7 @@ from_map(StateMap) ->
         provider = maps:get(<<"provider">>,StateMap),
         updatetype = maps:get(<<"updatetype">>,StateMap),
         ipset_hash = maps:get(<<"ipset_hash">>,StateMap),
+        ec2_region = maps:get(<<"ec2_region">>,StateMap),
         ec2_instance_id = maps:get(<<"ec2_instance_id">>,StateMap),
         ec2_availability_zone = maps:get(<<"ec2_availability_zone">>,StateMap),
         ec2_security_group_ids = maps:get(<<"ec2_security_group_ids">>,StateMap),
