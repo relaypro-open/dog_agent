@@ -49,16 +49,34 @@ dog_state_test_() ->
               , ?_assertMatch(ok, dog_state:get_provider(dog_state:set_provider(State, ok)))
               , ?_assertMatch(ok, dog_state:get_updatetype(dog_state:set_updatetype(State, ok)))
               , ?_assertMatch(ok, dog_state:get_version(dog_state:set_version(State, ok)))
+              , ?_assertMatch(ok, dog_state:get_ec2_instance_tags(dog_state:set_ec2_instance_tags(State, ok)))
+              , ?_assertMatch(ok, dog_state:get_os_info(dog_state:set_os_info(State, ok)))
              ]
      end}.
 
 setup() ->
-    State = dog_state:dog_state(dog_fixture:group(),       dog_fixture:hostname(), dog_fixture:location(),
-                                dog_fixture:environment(), dog_fixture:hostkey(),  [],
-                                <<"0.0">>,                 <<"0">>,                <<"1">>,
-                                <<"2">>,                   <<"3">>,                <<"ec2">>,
-                                <<"updatetype">>,          <<"4">>,                <<"instance-id">>,
-                                <<"availability-zone">>,   [<<"security-group-id">>], <<"owner-id">>),
+    State = dog_state:dog_state(
+	      dog_fixture:group(),       
+	      dog_fixture:hostname(), 
+	      dog_fixture:location(),
+	      dog_fixture:environment(), 
+	      dog_fixture:hostkey(),  
+	      [],                
+	      <<"0.0">>,                 
+	      <<"0">>,                
+	      <<"1">>,                  
+	      <<"2">>,                   
+	      <<"3">>,                
+	      <<"ec2">>,                  
+	      <<"updatetype">>,          
+	      <<"4">>,                
+	      <<"instance-id">>,                                
+	      <<"availability-zone">>,   
+	      [<<"security-group-id">>], 
+	      <<"owner-id">>,
+	      #{<<"role">> => <<"web">>}
+	      #{<<"distribution">> => <<"Ubuntu">> }
+	     ),
     Map = dog_state:to_map(State),
 
     %% dog_state:to_map and :from_map have an inconsistency with the handling of the interfaces key,

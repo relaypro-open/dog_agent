@@ -27,6 +27,7 @@
         is_ec2_instance/0,
         is_ec2_private_instance/0,
         is_softlayer_instance/0,
+	os_info/0,
         publish_to_queue/1
         ]).
 
@@ -498,7 +499,7 @@ ec2_instance_tag(Tag) ->
             end
     end.
 
--spec ec2_instance_tags() -> list() | [].
+-spec ec2_instance_tags() -> map().
 ec2_instance_tags() ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/tags/instance/",
     Method = get,
@@ -508,7 +509,7 @@ ec2_instance_tags() ->
     case hackney:request(Method, Url, Headers, Payload, Options) of
         {error, _Error} ->
             ?LOG_ERROR("Error getting ec2_instance_tags"),
-            [];
+	    #{};
         {ok, StatusCode, _RespHeaders, ClientRef} ->
             case StatusCode of
                 200 ->
@@ -521,7 +522,25 @@ ec2_instance_tags() ->
                     maps:from_list(Results);
                 _ ->
                     ?LOG_ERROR("Error getting ec2_instance_tags"),
-                    []
+		    #{}
             end
     end.
 
+exec(Command) ->
+        Result = exec:run(Command, [sync, stdout, stderr]),
+	case Result of
+		{ok,[{stdout,StdOut}]} ->
+			StdOut;
+		_ ->
+			[]
+	end.
+
+-spec os_info() -> map() | [].
+os_info() ->
+	Distribution = exec("lsb_release -s -i"),
+	Version = exec("lsb_release -s -r"),
+	OS_info = #{ <<"os">> =>
+		     #{ <<"distribution">> => Distribution,
+			<<"version">> => Version}
+		   },
+	OS_info.

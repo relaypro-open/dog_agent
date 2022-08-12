@@ -231,6 +231,7 @@ init_state() ->
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
     {Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
+    OS_Info = dog_interfaces:os_info(),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
     Hash4Ipsets =
     dog_iptables:create_hash(dog_iptables:read_current_ipv4_ipsets()),
@@ -276,7 +277,7 @@ init_state() ->
                 IpsetHash,Ec2InstanceId,
                                Ec2AvailabilityZone,
                                Ec2SecurityGroupIds,
-                               Ec2OwnerId,Ec2InstanceTags),
+                               Ec2OwnerId,Ec2InstanceTags,OS_Info),
     State.
 
 %
