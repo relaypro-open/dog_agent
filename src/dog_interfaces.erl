@@ -124,7 +124,7 @@ is_docker_instance() ->
   dog_docker:is_docker_instance().
 
 
--spec ec2_info() -> {Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string(), Ec2InstanceTags :: map()}.
+-spec ec2_info() -> {Ec2Region :: string(), Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string(), Ec2InstanceTags :: map()}.
 ec2_info() ->
     case is_ec2_instance() of
         true ->
