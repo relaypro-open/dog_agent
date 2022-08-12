@@ -530,7 +530,7 @@ exec(Command) ->
         Result = exec:run(Command, [sync, stdout, stderr]),
 	case Result of
 		{ok,[{stdout,StdOut}]} ->
-			StdOut;
+			string:trim(StdOut);
 		_ ->
 			[]
 	end.
@@ -539,8 +539,8 @@ exec(Command) ->
 os_info() ->
 	Distribution = exec("lsb_release -s -i"),
 	Version = exec("lsb_release -s -r"),
-	OS_info = #{ <<"os">> =>
-		     #{ <<"distribution">> => Distribution,
-			<<"version">> => Version}
+	OS_info = #{ 
+		    <<"distribution">> => Distribution,
+		    <<"version">> => Version
 		   },
 	OS_info.
