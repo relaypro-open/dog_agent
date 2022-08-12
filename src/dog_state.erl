@@ -10,7 +10,7 @@
         ]).
 
 -export([
-         dog_state/21,
+         dog_state/22,
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
          get_ec2_instance_tags/1,
@@ -28,7 +28,8 @@
          get_interfaces/1, 
          get_ipset_hash/1,
          get_location/1, 
-	 get_os_info/1,
+	 get_os_distribution/1,
+	 get_os_version/1,
          get_provider/1, 
          get_updatetype/1,
          get_version/1, 
@@ -49,7 +50,8 @@
          set_interfaces/2, 
          set_ipset_hash/2,
          set_location/2, 
-	 set_os_info/2,
+	 set_os_distribution/2,
+	 set_os_version/2,
          set_provider/2, 
          set_updatetype/2,
          set_version/2
@@ -68,7 +70,8 @@
 -type hostname() :: binary().
 -type interfaces() :: [tuple()].
 -type location() :: binary().
--type os_info() :: map().
+-type os_distribution() :: binary().
+-type os_version() :: binary().
 -type provider() :: binary().
 -type updatetype() :: atom().
 -type version() :: binary().
@@ -78,7 +81,7 @@
      interfaces, version, hash4_ipsets, hash6_ipsets,
      hash4_iptables, hash6_iptables, provider, updatetype,
      ipset_hash,ec2_region,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id,
-     ec2_instance_tags,os_info}).
+     ec2_instance_tags,os_distribution,os_version}).
 
 -type dog_state() :: #dog_state{}.
 
@@ -86,7 +89,8 @@ dog_state(Group, Hostname, Location, Environment,
       Hostkey, Interfaces, Version, Hash4Ipsets, Hash6Ipsets,
       Hash4Iptables, Hash6Iptables, Provider, UpdateType,
       IpsetHash, Ec2Region, Ec2InstanceId, Ec2AvailabilityZone, 
-      Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, OS_Info) ->
+      Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags,
+      OS_Distribution, OS_Version) ->
     #dog_state{group = Group, name = Hostname,
            location = Location, environment = Environment,
            hostkey = Hostkey, interfaces = Interfaces,
@@ -101,7 +105,8 @@ dog_state(Group, Hostname, Location, Environment,
            ec2_security_group_ids = Ec2SecurityGroupIds,
            ec2_owner_id = Ec2OwnerId,
            ec2_instance_tags = Ec2InstanceTags,
-	   os_info = OS_Info
+	   os_distribution = OS_Distribution,
+	   os_version = OS_Version
               }.
 
 -spec get_group(State :: dog_state()) -> binary().
@@ -128,13 +133,21 @@ get_location(State) -> State#dog_state.location.
 set_location(State, Location) ->
     State#dog_state{location = Location}.
 
--spec get_os_info(State :: dog_state()) -> binary().
-get_os_info(State) -> State#dog_state.location.
+-spec get_os_distribution(State :: dog_state()) -> binary().
+get_os_distribution(State) -> State#dog_state.location.
 
--spec set_os_info(State :: dog_state(),
-           Location :: os_info()) -> dog_state().
-set_os_info(State, Location) ->
-    State#dog_state{os_info = Location}.
+-spec set_os_distribution(State :: dog_state(),
+           Location :: os_distribution()) -> dog_state().
+set_os_distribution(State, Location) ->
+    State#dog_state{os_distribution = Location}.
+
+-spec get_os_version(State :: dog_state()) -> binary().
+get_os_version(State) -> State#dog_state.location.
+
+-spec set_os_version(State :: dog_state(),
+           Location :: os_version()) -> dog_state().
+set_os_version(State, Location) ->
+    State#dog_state{os_version = Location}.
 
 -spec get_environment(State :: dog_state()) -> binary().
 get_environment(State) -> State#dog_state.environment.
@@ -300,7 +313,8 @@ to_map(State) ->
       <<"ec2_security_group_ids">> => State#dog_state.ec2_security_group_ids,
       <<"ec2_owner_id">> => State#dog_state.ec2_owner_id,
       <<"ec2_instance_tags">> => State#dog_state.ec2_instance_tags,
-      <<"os_info">> => State#dog_state.os_info
+      <<"os_distribution">> => State#dog_state.os_distribution,
+      <<"os_version">> => State#dog_state.os_version
      }.
 
 from_map(StateMap) ->
@@ -326,7 +340,8 @@ from_map(StateMap) ->
         ec2_security_group_ids = maps:get(<<"ec2_security_group_ids">>,StateMap),
         ec2_owner_id = maps:get(<<"ec2_owner_id">>,StateMap),
         ec2_instance_tags = maps:get(<<"ec2_instance_tags">>,StateMap),
-        os_info = maps:get(<<"os_info">>,StateMap)
+        os_distribution = maps:get(<<"os_distribution">>,StateMap),
+        os_version = maps:get(<<"os_version">>,StateMap)
     }.
 
 to_group_routing_key(State) ->

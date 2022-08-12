@@ -59,7 +59,7 @@ do_watch_interfaces(StateOld) ->
     %?LOG_INFO("State0: ~p", [State0]),
     Provider = dog_state:get_provider(StateOld),
     {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
-    OS_Info = dog_interfaces:os_info(),
+    {OS_Distribution,OS_Version} = dog_interfaces:os_info(),
     HostnameOld = dog_state:get_hostname(StateOld),
     InterfacesOld = dog_state:get_interfaces(StateOld),
     {ok, InterfacesNew} =
@@ -98,7 +98,8 @@ do_watch_interfaces(StateOld) ->
                     <<"ipset_hash">> => IpsetHash,
                     <<"location">> => Location,
                     <<"name">> => Hostname,
-		    <<"os_info">> => OS_Info,
+		    <<"os_distribution">> => OS_Distribution,
+		    <<"os_version">> => OS_Version,
                     <<"provider">> => Provider,
                     <<"updatetype">> => UpdateType,
                     <<"version">> => Version,

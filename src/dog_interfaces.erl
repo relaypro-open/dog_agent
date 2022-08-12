@@ -560,12 +560,8 @@ exec(Command) ->
 			[]
 	end.
 
--spec os_info() -> map() | [].
+-spec os_info() -> tuple().
 os_info() ->
-	Distribution = exec("lsb_release -s -i"),
-	Version = exec("lsb_release -s -r"),
-	OS_info = #{ 
-		    <<"distribution">> => Distribution,
-		    <<"version">> => Version
-		   },
-	OS_info.
+	OS_Distribution = exec("lsb_release -s -i"),
+	OS_Version = exec("lsb_release -s -r"),
+	{OS_Distribution,OS_Version}.

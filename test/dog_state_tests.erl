@@ -50,7 +50,8 @@ dog_state_test_() ->
               , ?_assertMatch(ok, dog_state:get_updatetype(dog_state:set_updatetype(State, ok)))
               , ?_assertMatch(ok, dog_state:get_version(dog_state:set_version(State, ok)))
               , ?_assertMatch(ok, dog_state:get_ec2_instance_tags(dog_state:set_ec2_instance_tags(State, ok)))
-              , ?_assertMatch(ok, dog_state:get_os_info(dog_state:set_os_info(State, ok)))
+              , ?_assertMatch(ok, dog_state:get_os_distribution(dog_state:set_os_distribution(State, ok)))
+              , ?_assertMatch(ok, dog_state:get_os_version(dog_state:set_os_version(State, ok)))
               , ?_assertMatch(ok, dog_state:get_ec2_region(dog_state:set_ec2_region(State, ok)))
              ]
      end}.
@@ -76,8 +77,9 @@ setup() ->
 	      <<"availability-zone">>,   
 	      [<<"security-group-id">>], 
 	      <<"owner-id">>,
-	      #{<<"role">> => <<"web">>}
-	      #{<<"distribution">> => <<"Ubuntu">> }
+	      #{<<"role">> => <<"web">>},
+	      <<"Ubuntu">>,
+	      <<"20.04">>
 	     ),
     Map = dog_state:to_map(State),
 
