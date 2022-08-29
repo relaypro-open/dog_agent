@@ -342,7 +342,7 @@ ec2_subnet_id() ->
 
 -spec ec2_subnet_id(Mac :: string()) -> string().
 ec2_subnet_id(Mac) ->
-    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/vpc-id",
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/subnet-id",
     Method = get,
     Headers = [{<<"Content-Type">>, <<"text/plain">>}],
     Payload = <<>>,
