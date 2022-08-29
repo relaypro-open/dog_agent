@@ -10,13 +10,20 @@
         ]).
 
 -export([
-         dog_state/22,
+	 get_os_distribution/1,
+	 get_os_version/1,
+	 set_ec2_region/2,
+	 set_os_distribution/2,
+	 set_os_version/2,
+         dog_state/24,
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
          get_ec2_instance_tags/1,
          get_ec2_owner_id/1,
          get_ec2_region/1,
          get_ec2_security_group_ids/1,
+         get_ec2_subnet_id/1,
+         get_ec2_vpc_id/1,
          get_environment/1,
          get_group/1, 
          get_hash4_ipsets/1, 
@@ -28,17 +35,16 @@
          get_interfaces/1, 
          get_ipset_hash/1,
          get_location/1, 
-	 get_os_distribution/1,
-	 get_os_version/1,
          get_provider/1, 
          get_updatetype/1,
          get_version/1, 
          set_ec2_availability_zone/2,
          set_ec2_instance_id/2,
          set_ec2_instance_tags/2,
-	 set_ec2_region/2,
-         set_ec2_security_group_ids/2,
          set_ec2_owner_id/2,
+         set_ec2_security_group_ids/2,
+         set_ec2_subnet_id/2,
+         set_ec2_vpc_id/2,
          set_environment/2, 
          set_group/2,
          set_hash4_ipsets/2, 
@@ -50,8 +56,6 @@
          set_interfaces/2, 
          set_ipset_hash/2,
          set_location/2, 
-	 set_os_distribution/2,
-	 set_os_version/2,
          set_provider/2, 
          set_updatetype/2,
          set_version/2
@@ -63,6 +67,8 @@
 -type ec2_owner_id() :: string().
 -type ec2_region() :: string().
 -type ec2_security_group_ids() :: list().
+-type ec2_subnet_id() :: string().
+-type ec2_vpc_id() :: string().
 -type environment() :: binary().
 -type group() :: binary().
 -type hash() :: binary().
@@ -81,7 +87,7 @@
      interfaces, version, hash4_ipsets, hash6_ipsets,
      hash4_iptables, hash6_iptables, provider, updatetype,
      ipset_hash,ec2_region,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id,
-     ec2_instance_tags,os_distribution,os_version}).
+     ec2_instance_tags,os_distribution,os_version,ec2_vpc_id,ec2_subnet_id}).
 
 -type dog_state() :: #dog_state{}.
 
@@ -90,7 +96,7 @@ dog_state(Group, Hostname, Location, Environment,
       Hash4Iptables, Hash6Iptables, Provider, UpdateType,
       IpsetHash, Ec2Region, Ec2InstanceId, Ec2AvailabilityZone, 
       Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags,
-      OS_Distribution, OS_Version) ->
+      OS_Distribution, OS_Version, Ec2VpcId, Ec2SubnetId) ->
     #dog_state{group = Group, name = Hostname,
            location = Location, environment = Environment,
            hostkey = Hostkey, interfaces = Interfaces,
@@ -106,7 +112,9 @@ dog_state(Group, Hostname, Location, Environment,
            ec2_owner_id = Ec2OwnerId,
            ec2_instance_tags = Ec2InstanceTags,
 	   os_distribution = OS_Distribution,
-	   os_version = OS_Version
+	   os_version = OS_Version,
+	   ec2_vpc_id = Ec2VpcId,
+	   ec2_subnet_id = Ec2SubnetId
               }.
 
 -spec get_group(State :: dog_state()) -> binary().
@@ -275,6 +283,22 @@ get_ec2_security_group_ids(State) -> State#dog_state.ec2_security_group_ids.
 set_ec2_security_group_ids(State, Ec2SecurityGroupIds) ->
     State#dog_state{ec2_security_group_ids = Ec2SecurityGroupIds}.
 
+-spec get_ec2_subnet_id(State :: dog_state()) -> string().
+get_ec2_subnet_id(State) -> State#dog_state.ec2_subnet_id.
+
+-spec set_ec2_subnet_id(State :: dog_state(),
+            Ec2SubnetId :: ec2_subnet_id()) -> dog_state().
+set_ec2_subnet_id(State, Ec2SubnetId) ->
+    State#dog_state{ec2_subnet_id = Ec2SubnetId}.
+
+-spec get_ec2_vpc_id(State :: dog_state()) -> string().
+get_ec2_vpc_id(State) -> State#dog_state.ec2_vpc_id.
+
+-spec set_ec2_vpc_id(State :: dog_state(),
+            Ec2VpcId :: ec2_vpc_id()) -> dog_state().
+set_ec2_vpc_id(State, Ec2VpcId) ->
+    State#dog_state{ec2_vpc_id = Ec2VpcId}.
+
 -spec get_ec2_owner_id(State :: dog_state()) -> list().
 get_ec2_owner_id(State) -> State#dog_state.ec2_owner_id.
 
@@ -314,7 +338,9 @@ to_map(State) ->
       <<"ec2_owner_id">> => State#dog_state.ec2_owner_id,
       <<"ec2_instance_tags">> => State#dog_state.ec2_instance_tags,
       <<"os_distribution">> => State#dog_state.os_distribution,
-      <<"os_version">> => State#dog_state.os_version
+      <<"os_version">> => State#dog_state.os_version,
+      <<"ec2_vpc_id">> => State#dog_state.ec2_vpc_id,
+      <<"ec2_subnet_id">> => State#dog_state.ec2_subnet_id
      }.
 
 from_map(StateMap) ->
@@ -341,7 +367,9 @@ from_map(StateMap) ->
         ec2_owner_id = maps:get(<<"ec2_owner_id">>,StateMap),
         ec2_instance_tags = maps:get(<<"ec2_instance_tags">>,StateMap),
         os_distribution = maps:get(<<"os_distribution">>,StateMap),
-        os_version = maps:get(<<"os_version">>,StateMap)
+        os_version = maps:get(<<"os_version">>,StateMap),
+        ec2_vpc_id = maps:get(<<"ec2_vpc_id">>,StateMap),
+        ec2_subnet_id = maps:get(<<"ec2_subnet_id">>,StateMap)
     }.
 
 to_group_routing_key(State) ->

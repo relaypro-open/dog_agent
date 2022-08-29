@@ -209,7 +209,10 @@ watch_config() ->
 -spec init(term()) -> no_return().
 
 init(_Args) ->
-    timer:sleep(15000),
+    WaitSeconds = 15,
+    WaitMilliSeconds = WaitSeconds * 1000,
+    ?LOG_INFO("Waiting %s seconds for rabbitmq initialization",[WaitSeconds]),
+    timer:sleep(WaitMilliSeconds),
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
                   watch_interfaces),
@@ -230,7 +233,7 @@ init_state() ->
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
-    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags} = dog_interfaces:ec2_info(),
+    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, Ec2VpcId, Ec2SubnetId} = dog_interfaces:ec2_info(),
     {OS_Distribution,OS_Version} = dog_interfaces:os_info(),
     {ok, Hostname} = dog_interfaces:get_fqdn(),
     Hash4Ipsets =
@@ -280,7 +283,8 @@ init_state() ->
 	        Ec2AvailabilityZone,
 	        Ec2SecurityGroupIds,
 	        Ec2OwnerId,Ec2InstanceTags,
-		OS_Distribution,OS_Version),
+		OS_Distribution,OS_Version,
+		Ec2VpcId, Ec2SubnetId),
     State.
 
 %

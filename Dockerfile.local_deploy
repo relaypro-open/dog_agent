@@ -26,8 +26,7 @@ RUN ./rebar3 release
 
 FROM base as deploy
 
-RUN apt-get update
-RUN apt-get install -y iptables ipset less ack lsb-release
+RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
@@ -45,8 +44,5 @@ RUN cp /usr/sbin/iptables-restore /home/dog/bin/
 RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
 
 RUN ls -latr /opt/dog
-
-# Expose relevant ports
-EXPOSE 22
 
 CMD ["/opt/dog/bin/dog", "foreground"]

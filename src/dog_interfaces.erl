@@ -13,6 +13,8 @@
         ec2_instance_tags/0,
         ec2_instance_tag/1,
 	ec2_region/0,
+	ec2_subnet_id/0,
+	ec2_vpc_id/0,
         fqdn/0,
         get_environment_key/0, 
         get_fqdn/0,
@@ -124,7 +126,8 @@ is_docker_instance() ->
   dog_docker:is_docker_instance().
 
 
--spec ec2_info() -> {Ec2Region :: string(), Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string(), Ec2InstanceTags :: map()}.
+-spec ec2_info() -> {Ec2Region :: string(), Ec2InstanceId :: string(), Ec2AvailabilityZone :: string(), Ec2SecurityGroupIds :: string(), Ec2OwnerId :: string(), Ec2InstanceTags :: map(),
+		    Ec2VpcId :: string(), Ec2SubnetId :: string() }.
 ec2_info() ->
     case is_ec2_instance() of
         true ->
@@ -134,7 +137,9 @@ ec2_info() ->
              ec2_availability_zone(),
              ec2_security_group_ids(),
              ec2_owner_id(),
-             ec2_instance_tags()
+             ec2_instance_tags(),
+	     ec2_vpc_id(),
+	     ec2_subnet_id()
              };
         false ->
             {
@@ -143,7 +148,9 @@ ec2_info() ->
              <<"">>,
              <<"">>,
              <<"">>,
-             #{}
+             #{},
+	     <<"">>,
+	     <<"">>
             }
     end.
 
@@ -316,6 +323,87 @@ ec2_owner_id(Mac) ->
             end
     end.
 
+-spec ec2_subnet_id() -> string().
+ec2_subnet_id() ->
+    case ec2_macs() of
+        {error, _} ->
+            <<"">>;
+        Macs ->
+            Results = lists:map(fun(Mac) -> 
+                ec2_subnet_id(Mac)
+            end, Macs),
+            case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+                true ->
+                    <<"">>;
+                false ->
+                   hd(Results)
+            end
+    end.
+
+-spec ec2_subnet_id(Mac :: string()) -> string().
+ec2_subnet_id(Mac) ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/vpc-id",
+    Method = get,
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            ?LOG_ERROR("Error getting ec2_subnet_id"),
+            {error, notfound};
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,Body} = hackney:body(ClientRef),
+                    Owners = re:split(Body, "\n", [{return, list}]),
+                    OwnersStrings = [list_to_binary(Sg) || Sg <- Owners],
+                    hd(OwnersStrings);
+                _ ->
+                    ?LOG_ERROR("Error getting ec2_subnet_id"),
+                    {error,notfound}
+            end
+    end.
+
+-spec ec2_vpc_id() -> string().
+ec2_vpc_id() ->
+    case ec2_macs() of
+        {error, _} ->
+            <<"">>;
+        Macs ->
+            Results = lists:map(fun(Mac) -> 
+                ec2_vpc_id(Mac)
+            end, Macs),
+            case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+                true ->
+                    <<"">>;
+                false ->
+                   hd(Results)
+            end
+    end.
+
+-spec ec2_vpc_id(Mac :: string()) -> string().
+ec2_vpc_id(Mac) ->
+    Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/vpc-id",
+    Method = get,
+    Headers = [{<<"Content-Type">>, <<"text/plain">>}],
+    Payload = <<>>,
+    Options = [{connect_timeout,1000}],
+    case hackney:request(Method, Url, Headers, Payload, Options) of
+        {error, _Error} ->
+            ?LOG_ERROR("Error getting ec2_vpc_id"),
+            {error, notfound};
+        {ok, StatusCode, _RespHeaders, ClientRef} ->
+            case StatusCode of
+                200 ->
+                    {ok,Body} = hackney:body(ClientRef),
+                    Owners = re:split(Body, "\n", [{return, list}]),
+                    OwnersStrings = [list_to_binary(Sg) || Sg <- Owners],
+                    hd(OwnersStrings);
+                _ ->
+                    ?LOG_ERROR("Error getting ec2_vpc_id"),
+                    {error,notfound}
+            end
+    end.
 -spec ec2_public_ipv4(Mac :: string()) -> list() | {error, atom() | integer()}.
 ec2_public_ipv4(Mac) ->
     Url = ?EC2_METADATA_BASE_URL ++ "/latest/meta-data/network/interfaces/macs/" ++ Mac ++ "/public-ipv4s",

@@ -1,0 +1,116 @@
+# Build stage 0
+FROM erlang:23 as base
+
+RUN apt-get update -y 
+RUN apt-get install -y curl git dirmngr gpg gawk unzip build-essential autoconf libssl-dev libncurses5-dev m4 libssh-dev direnv
+
+RUN useradd -ms $(which bash) asdf
+
+USER asdf
+
+RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.10.2 && \
+  echo '. $HOME/.asdf/asdf.sh' >> $HOME/.bashrc && \
+  echo '. $HOME/.asdf/asdf.sh' >> $HOME/.profile
+
+ENV PATH /home/asdf/.asdf/bin:/home/asdf/.asdf/shims:$PATH
+
+RUN /bin/bash -c "\
+  asdf plugin-add elixir && \
+  asdf plugin-add erlang"
+
+WORKDIR /opt/dog
+
+COPY .tool-versions /opt/dog
+
+RUN asdf plugin add direnv
+
+RUN /bin/bash -c "ls -la && asdf install"
+
+
+ENV LANG C.UTF-8
+
+#FROM base as deps
+##Set working directory
+#RUN mkdir /data
+#WORKDIR /opt/dog
+COPY rebar.config.local_docker rebar.config
+COPY rebar.lock .
+COPY rebar3 .
+RUN ./rebar3 compile
+#
+#
+#WORKDIR /data
+#COPY . .
+#COPY --from=base /data/_build .
+#COPY config/sys.config.local_docker config/sys.config
+#
+#RUN ./rebar3 --version
+#
+##Build the release
+#RUN ./rebar3 release
+#
+#FROM deps as dev
+
+RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim libcap-dev 
+RUN mkdir -p /opt/dog
+RUN mkdir -p /etc/dog
+RUN mkdir -p /etc/iptables
+COPY config/config.json.local_docker /etc/dog/config.json
+RUN mkdir -p /var/log/dog
+# Install the released application
+COPY --from=compile /data/_build/default/rel/dog /opt/dog
+RUN chmod 4555 /opt/dog/lib/erlexec-1.20.1/priv/x86_64-pc-linux-gnu/exec-port
+RUN mkdir -p /home/dog/bin
+RUN cp /sbin/ipset /home/dog/bin/ipset
+RUN cp /usr/sbin/iptables-save /home/dog/bin/
+RUN cp /usr/sbin/ip6tables-save /home/dog/bin/
+RUN cp /usr/sbin/iptables-restore /home/dog/bin/
+RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
+#
+#RUN ls -latr /opt/dog
+#
+#CMD ["/opt/dog/bin/dog", "foreground"]
+
+
+#FROM erlang:23 as base
+#FROM ubuntu:22.04 as dev
+#
+#RUN apt-get update -y 
+#RUN apt-get install -y curl  git  dirmngr  gpg  gawk  unzip  build-essential  autoconf  libssl-dev  libncurses5-dev  m4  libssh-dev  libcap-dev  iptables  ipset  less  ack
+##
+#RUN useradd -ms $(which bash) asdf
+#
+#USER asdf
+#
+#RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.8.1 && \
+#  echo '. $HOME/.asdf/asdf.sh' >> $HOME/.bashrc && \
+#  echo '. $HOME/.asdf/asdf.sh' >> $HOME/.profile
+#
+#ENV PATH /home/asdf/.asdf/bin:/home/asdf/.asdf/shims:$PATH
+#
+#RUN /bin/bash -c "\
+#  asdf plugin-add elixir && \
+#  asdf plugin-add erlang"
+#
+#WORKDIR /opt/dog
+#
+#COPY .tool-versions /opt/dog
+#
+#RUN /bin/bash -c "ls -la && asdf install"
+#
+#ENV LANG C.UTF-8
+#
+#RUN mkdir -p /opt/dog
+#RUN mkdir -p /etc/dog
+#RUN mkdir -p /etc/iptables
+#COPY config/config.json.local_docker /etc/dog/config.json
+#RUN mkdir -p /var/log/dog
+## Install the released application
+#COPY --from=compile /data/_build/default/rel/dog /opt/dog
+#RUN chmod 4555 /opt/dog/lib/erlexec-1.20.1/priv/x86_64-pc-linux-gnu/exec-port
+#RUN mkdir -p /home/dog/bin
+#RUN cp /sbin/ipset /home/dog/bin/ipset
+#RUN cp /usr/sbin/iptables-save /home/dog/bin/
+#RUN cp /usr/sbin/ip6tables-save /home/dog/bin/
+#RUN cp /usr/sbin/iptables-restore /home/dog/bin/
+#RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
