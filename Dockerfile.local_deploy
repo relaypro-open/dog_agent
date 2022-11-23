@@ -26,7 +26,8 @@ RUN ./rebar3 release
 
 FROM base as deploy
 
-RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim
+RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim jq curl
+
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
@@ -45,4 +46,10 @@ RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
 
 RUN ls -latr /opt/dog
 
-CMD ["/opt/dog/bin/dog", "foreground"]
+COPY csc_certs.sh /etc/rabbitmq/ 
+
+RUN mkdir -p /etc/dog/certs \
+	&& mkdir -p /etc/dog/private \
+	&& chmod 700 /etc/dog/private
+
+CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
