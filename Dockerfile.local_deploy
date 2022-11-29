@@ -46,6 +46,7 @@ RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
 
 RUN ls -latr /opt/dog
 
+RUN mkdir /etc/rabbitmq
 COPY csc_certs.sh /etc/rabbitmq/ 
 
 RUN mkdir -p /etc/dog/certs \
