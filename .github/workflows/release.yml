@@ -22,7 +22,7 @@ jobs:
       - name: copy file
         uses: canastro/copy-file-action@master
         with:
-          source: "config/sys.config.local_docker"
+          source: "config/sys.config.etc"
           target: "config/sys.config"
       - run: rebar3 release as local_docker
       - name: Create Release
