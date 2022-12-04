@@ -15,12 +15,6 @@ jobs:
         rebar3: ['3.18.0']
     steps:
       - uses: actions/checkout@v2
-      - name: Set output
-        id: vars
-        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
-      - name: Check output
-        env:
-          RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
@@ -45,12 +39,12 @@ jobs:
             - Second Change
           draft: false
           prerelease: false
-      - name: upload darwin artifact
+      - name: upload linux artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: _build/default/rel/dog/dog-${{ steps.vars.output.tag }}.tar.gz
-          asset_name: dog-${{ steps.vars.output.tag }}.tar.gz
+          asset_path: _build/default/rel/dog/dog-${{ github.sha }}.tar.gz
+          asset_name: dog-${{ github.sha }}.tar.gz
           asset_content_type: application/gzip
