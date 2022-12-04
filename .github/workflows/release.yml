@@ -1,0 +1,23 @@
+# create this in .github/workflows/ci.yml
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    name: Erlang/OTP ${{matrix.otp}} / rebar3 ${{matrix.rebar3}}
+    strategy:
+      matrix:
+        otp: ['23.3.4.3']
+        rebar3: ['3.18.0']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          rebar3-version: ${{matrix.rebar3}}
+      - name: copy file
+        uses: canastro/copy-file-action@master
+        with:
+          source: "config/sys.config.local_docker"
+          target: "config/sys.config"
+      - run: rebar3 release as local_docker
