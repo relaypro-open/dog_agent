@@ -168,7 +168,8 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                         ExecuteCommandRaw = base64:decode(ExecuteCommandBase64),
                         ?LOG_DEBUG("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
                         UseShell = proplists:get_value(use_shell, Message, false),
-                        RunAsUser = proplists:get_value(user, Message, "dog"),
+			CmdUser = application:get_env(dog, cmd_user, 'dog'),
+                        RunAsUser = proplists:get_value(user, Message, CmdUser),
                         ExecuteCommand = case UseShell of                                          
                                              true ->                                                 
                                                  ExecuteCommandRaw;      
