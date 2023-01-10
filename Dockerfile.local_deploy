@@ -10,6 +10,7 @@ WORKDIR /data
 COPY rebar.config.local_docker rebar.config
 COPY rebar.lock .
 COPY rebar3 .
+RUN ./rebar3 deps
 RUN ./rebar3 compile
 
 FROM base as compile
