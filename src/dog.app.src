@@ -21,7 +21,8 @@
 		bbmustache,
 		jsn,
 		erldocker,
-		turtle
+		turtle,
+		erlexec
 	]},
 	{included_applications, []},
 	{env,[]},
