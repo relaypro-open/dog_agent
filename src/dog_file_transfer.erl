@@ -182,7 +182,6 @@ execute_command(State, ApiUser, Message) ->
 	?LOG_DEBUG("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
 	UseShell = proplists:get_value(use_shell, Message, false),
 	CmdUser = application:get_env(dog, cmd_user, "dog"),
-	RunAsUser = proplists:get_value(user, Message, CmdUser),
 	ExecuteCommand = case UseShell of                                          
 			     true ->                                                 
 				 ExecuteCommandRaw;      
@@ -191,7 +190,7 @@ execute_command(State, ApiUser, Message) ->
 			end,                                                    
 	?LOG_INFO("execute_command: ApiUser: ~p, RunAsUser: ~p, Command: ~p",[ApiUser,RunAsUser,ExecuteCommand]),
 	try
-		Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, RunAsUser}]),
+		Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, CmdUser}]),
 		?LOG_DEBUG("Result: ~p",[Result]),
 		case Result of
 		    {ok,[{stdout,StdOut}]} ->
