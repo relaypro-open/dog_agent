@@ -188,7 +188,7 @@ execute_command(State, ApiUser, Message) ->
 			     false ->                                                
 				 string:split(ExecuteCommandRaw," ")
 			end,                                                    
-	?LOG_INFO("execute_command: ApiUser: ~p, RunAsUser: ~p, Command: ~p",[ApiUser,RunAsUser,ExecuteCommand]),
+	?LOG_INFO("execute_command: ApiUser: ~p, CmdUser: ~p, Command: ~p",[ApiUser,CmdUser,ExecuteCommand]),
 	try
 		Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, CmdUser}]),
 		?LOG_DEBUG("Result: ~p",[Result]),
