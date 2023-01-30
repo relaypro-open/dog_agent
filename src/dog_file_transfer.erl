@@ -181,7 +181,7 @@ execute_command(State, ApiUser, Message) ->
 	ExecuteCommandRaw = base64:decode(ExecuteCommandBase64),
 	?LOG_DEBUG("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
 	UseShell = proplists:get_value(use_shell, Message, false),
-	CmdUser = application:get_env(dog, cmd_user, 'dog'),
+	CmdUser = application:get_env(dog, cmd_user, "dog"),
 	RunAsUser = proplists:get_value(user, Message, CmdUser),
 	ExecuteCommand = case UseShell of                                          
 			     true ->                                                 
