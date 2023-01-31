@@ -46,7 +46,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
             Filename = dog_common:to_list(proplists:get_value(file_name, Message)),
             Command = proplists:get_value(command, Message),
             UserData = proplists:get_value(user_data, Message),
-            ?LOG_DEBUG("Command: ~p",[Command]),
+            ?LOG_DEBUG(#{ command => Command}),
             case Command of
                 send_file ->
 			send_file(State, ApiUser, Message, Filename, UserData);
@@ -60,9 +60,9 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     end.
 
 fetch_file(State,ApiUser,Filename) ->
-    ?LOG_INFO("fetch_file: ApiUser: ~p, Filename: ~p",[ApiUser,Filename]),
+    ?LOG_INFO(#{apiuser => ApiUser, filename => Filename}),
     try
-	?LOG_DEBUG("Filename: ~p",[Filename]),
+	?LOG_DEBUG(#{filename => Filename}),
 	case file:read_file(Filename) of
 	    {ok,Bytes} ->
 		{reply, <<"application/octet-stream">>, Bytes, State};
@@ -73,7 +73,7 @@ fetch_file(State,ApiUser,Filename) ->
 	Reply -> Reply
     catch %TODO: replace with 'after'
 	Exception:Reason:Stacktrace -> 
-	    ?LOG_ERROR("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+	    ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
 	    {reply, <<"text/json">>, jsx:encode([Reason]), State}
     end.
 
@@ -81,13 +81,13 @@ delete_file(State,ApiUser,Filename) ->
     try
 	FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
 	FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-	?LOG_INFO("delete_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
+	?LOG_ERROR(#{ apiuser => ApiUser, filepath => FilePath}),
 	case FilenameClean of
 	    unsafe ->
 		?LOG_DEBUG("Unsafe FilePath"),
 		{reply, <<"text/json">>, jsx:encode(file_bad), State};
 	    _ ->
-		?LOG_DEBUG("FilePath: ~p",[FilePath]),
+                ?LOG_ERROR(#{ filepath => FilePath}),
 		case filelib:is_dir(FilePath) of
 		    true ->
 			case file:del_dir(FilePath) of
@@ -111,7 +111,7 @@ delete_file(State,ApiUser,Filename) ->
 	Reply -> Reply
     catch %TODO: replace with 'after'
 	Exception:Reason:Stacktrace -> 
-	    ?LOG_ERROR("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+	    ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
 	    {reply, <<"text/json">>, jsx:encode([Reason]), State}
     end.
 
@@ -120,7 +120,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
 	?LOG_DEBUG("send_file"),
 	FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
 	FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-	?LOG_INFO("send_file: ApiUser: ~p, FilePath: ~p",[ApiUser,FilePath]),
+	?LOG_INFO(#{ apiuser => ApiUser, filepath => FilePath}),
 	case FilenameClean of
 	    unsafe ->
 		?LOG_DEBUG("Unsafe FilePath"),
@@ -130,8 +130,8 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
 		FileCurrentBlock = proplists:get_value(current_block, Message),
 		MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
 		FileBlock = maps:get(file_block, UserData),
-		?LOG_DEBUG("FilePath: ~p",[FilePath]),
-		?LOG_DEBUG("Filename: ~p, MaxBlockSizeBytes: ~p, Block ~p of ~p",[Filename,MaxBlockSizeBytes,FileCurrentBlock,FileTotalBlocks]),
+	        ?LOG_DEBUG(#{ filepath => FilePath}),
+		?LOG_DEBUG(#{ filename => Filename, maxblocksizebytes => MaxBlockSizeBytes, file_currenp_block => FileCurrentBlock,file_total_blocks => FileTotalBlocks}),
 		%{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
 		{ok,IoDevice} = case FileCurrentBlock of
 				    1 ->
@@ -154,7 +154,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
 		    N when N >=  FileTotalBlocks ->
 			%file:write(IoDevice,FileBlock),
 			StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-			?LOG_DEBUG("StartByte: ~p",[StartByte]),
+			?LOG_DEBUG(#{start_byte => StartByte}),
 			file:pwrite(IoDevice,StartByte,FileBlock),
 			file:close(IoDevice),
 			{ack,State};
@@ -162,7 +162,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
 		    _ ->
 			%file:write(IoDevice,FileBlock),
 			StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-			?LOG_DEBUG("StartByte: ~p",[StartByte]),
+			?LOG_DEBUG(#{start_byte => StartByte}),
 			file:pwrite(IoDevice,StartByte,FileBlock),
 			{ack,State}
 			%{reply, <<"text/json">>, jsx:encode(file_ok), State}
@@ -172,14 +172,14 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
 	{ack, NewState} -> {ack,NewState}
     catch %TODO: replace with 'after'
 	Exception:Reason:Stacktrace -> 
-	    ?LOG_ERROR("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+	    ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
 	    {ack, Reason}
     end.
 
 execute_command(State, ApiUser, Message) ->
 	ExecuteCommandBase64 = proplists:get_value(execute_command, Message),
 	ExecuteCommandRaw = base64:decode(ExecuteCommandBase64),
-	?LOG_DEBUG("ExecuteCommandRaw: ~p",[ExecuteCommandRaw]),
+	?LOG_DEBUG(#{execute_command_raw => ExecuteCommandRaw}),
 	UseShell = proplists:get_value(use_shell, Message, false),
 	CmdUser = application:get_env(dog, cmd_user, "dog"),
 	ExecuteCommand = case UseShell of                                          
@@ -188,20 +188,20 @@ execute_command(State, ApiUser, Message) ->
 			     false ->                                                
 				 string:split(ExecuteCommandRaw," ")
 			end,                                                    
-	?LOG_INFO("execute_command: ApiUser: ~p, CmdUser: ~p, Command: ~p",[ApiUser,CmdUser,ExecuteCommand]),
+	?LOG_INFO(#{api_user => ApiUser, cmd_user => CmdUser, execute_command => ExecuteCommand}),
 	try
 		Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, CmdUser}]),
-		?LOG_DEBUG("Result: ~p",[Result]),
+		?LOG_DEBUG(#{result => Result}),
 		case Result of
 		    {ok,[{stdout,StdOut}]} ->
 			case length(StdOut) > 1 of
 			    true ->
-				?LOG_DEBUG("StdOut: ~p",[StdOut]),
+				?LOG_DEBUG(#{stdout => StdOut}),
 				ParsedStdOut = [erlang:iolist_to_binary(StdOut)],
-				?LOG_DEBUG("ParsedStdOut: ~p",[ParsedStdOut]),
+				?LOG_DEBUG(#{parsed_stdout => ParsedStdOut}),
 				{reply, <<"text/json">>, jsx:encode([{ok, ParsedStdOut}]), State};
 			    false ->
-				?LOG_DEBUG("StdOut: ~p",[StdOut]),
+				?LOG_DEBUG(#{stdout => StdOut}),
 				{reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State}
 			end;
 		    {ok,[]} ->
@@ -213,7 +213,7 @@ execute_command(State, ApiUser, Message) ->
 		    {error, Reason} ->
 			{reply, <<"text/json">>, jsx:encode([{error, Reason}]), State};
 		    UnknownResponse ->
-			?LOG_DEBUG("UnknownResponse: ~p",[UnknownResponse]),
+			?LOG_DEBUG(#{unknown_response => UnknownResponse}),
 			{reply, <<"text/json">>, {error, [UnknownResponse]}, State}
 	    end
 	after
@@ -241,17 +241,17 @@ handle_call(_Request, _From, State) ->
 handle_cast(stop, State) ->
   {stop, normal, State};
 handle_cast(Msg, State) ->
-  ?LOG_ERROR("unknown_message: Msg: ~p, State: ~p",[Msg, State]),
+  ?LOG_ERROR(#{log => "unknown_message", msg => Msg, state => State}),
   {noreply, State}.
 
 -spec handle_info(_,_) -> {'noreply',_}.
 handle_info(Info, State) ->
-  ?LOG_ERROR("unknown_message: Info: ~p, State: ~p",[Info, State]),
+  ?LOG_ERROR(#{ log => "unknown_message",  info => Info, state => State}),
   {noreply, State}.
 
 -spec terminate(_, map()) -> {close}.
 terminate(Reason, State) ->
-  ?LOG_INFO("terminate: Reason: ~p, State: ~p", [Reason, State]),
+  ?LOG_INFO(#{ log => "terminate",  reason => Reason, state => State}),
   {close}.
 
 -spec code_change(_, map(), _) -> {ok, map()}.
