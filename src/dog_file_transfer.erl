@@ -81,20 +81,19 @@ delete_file(State,ApiUser,Filename) ->
     try
 	FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
 	FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-	?LOG_ERROR(#{ apiuser => ApiUser, filepath => FilePath}),
+	?LOG_DEBUG(#{ apiuser => ApiUser, filepath => FilePath}),
 	case FilenameClean of
 	    unsafe ->
-		?LOG_DEBUG("Unsafe FilePath"),
+		?LOG_ERROR("Unsafe FilePath"),
 		{reply, <<"text/json">>, jsx:encode(file_bad), State};
 	    _ ->
-                ?LOG_ERROR(#{ filepath => FilePath}),
+                ?LOG_DEBUG(#{ filepath => FilePath}),
 		case filelib:is_dir(FilePath) of
 		    true ->
 			case file:del_dir(FilePath) of
 				     {error,Error} ->
 					{reply, <<"text/json">>, jsx:encode([{error,Error}])};
 				     ok ->
-					%{ack,State};
 					{reply, <<"text/json">>, jsx:encode([ok]), State}
 				 end;
 		    false ->
@@ -102,7 +101,6 @@ delete_file(State,ApiUser,Filename) ->
 				     {error,Error} ->
 					{reply, <<"text/json">>, jsx:encode([{error,Error}])};
 				     ok ->
-					%{ack,State};
 					{reply, <<"text/json">>, jsx:encode([ok]), State}
 				 end
 		end
@@ -196,12 +194,11 @@ execute_command(State, ApiUser, Message) ->
 		    {ok,[{stdout,StdOut}]} ->
 			case length(StdOut) > 1 of
 			    true ->
-				?LOG_DEBUG(#{stdout => StdOut}),
 				ParsedStdOut = [erlang:iolist_to_binary(StdOut)],
-				?LOG_DEBUG(#{parsed_stdout => ParsedStdOut}),
+				?LOG_INFO(#{parsed_stdout => ParsedStdOut}),
 				{reply, <<"text/json">>, jsx:encode([{ok, ParsedStdOut}]), State};
 			    false ->
-				?LOG_DEBUG(#{stdout => StdOut}),
+				?LOG_INFO(#{stdout => StdOut}),
 				{reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State}
 			end;
 		    {ok,[]} ->
