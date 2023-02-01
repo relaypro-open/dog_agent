@@ -18,7 +18,8 @@ FROM base as compile
 WORKDIR /data
 COPY . .
 COPY --from=base /data/_build .
-copy config/sys.config.etc config/sys.config
+COPY config/sys.config.etc config/sys.config
+RUN sed -i 's/NOT_SET/local_docker/g' config/sys.config
 
 RUN ./rebar3 --version
 
@@ -33,7 +34,7 @@ RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
 RUN mkdir -p /etc/iptables
-copy config/sys.config.local_docker /etc/dog/dog.config
+COPY config/sys.config.local_docker /etc/dog/dog.config
 COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application
