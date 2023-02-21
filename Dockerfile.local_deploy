@@ -1,8 +1,7 @@
 # Build stage 0
 FROM erlang:23 as base
 
-RUN apt-get update
-RUN apt-get install libcap-dev
+RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl
 
 #Set working directory
 RUN mkdir /data
@@ -27,9 +26,6 @@ RUN ./rebar3 --version
 RUN ./rebar3 release
 
 FROM base as deploy
-
-RUN apt-get update && apt-get install -y iptables ipset less ack lsb-release vim jq curl
-
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
