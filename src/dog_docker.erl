@@ -35,7 +35,7 @@ any_docker_containers() ->
         [] ->
           false;
         _ ->
-         ?LOG_DEBUG("containers: %p",[Containers]),
+         ?LOG_DEBUG("containers: ~p",[Containers]),
           true
       end;
     false ->
@@ -205,7 +205,7 @@ default_network() ->
 
 container_networks() ->
   {ok, Containers} = docker_container:containers(),
-  %io:format("Containers: ~p~n",[Containers]),
+  ?LOG_DEBUG("Containers: ~p",[Containers]),
   ContainerNetworks = case Containers of
                         [] ->
                           [];
@@ -273,7 +273,7 @@ get_interfaces(ContainerNetworks,DefaultNetwork) ->
 
 per_container(ContainerNetworks,DefaultNetwork,Template) ->
   string:join(lists:map(fun(Container) ->
-                            %io:format("Container: ~p~n",[Container]),
+                            ?LOG_DEBUG("Container: ~p",[Container]),
                             Nets = maps:get("nets",Container),
                             NetworkMode = maps:get("network_mode",Container),
                             lists:map(fun(Net) ->
@@ -292,6 +292,7 @@ per_container(ContainerNetworks,DefaultNetwork,Template) ->
 
 
 per_network(ContainerNetworks,DefaultNetwork,Template) ->
+ ?LOG_DEBUG("ContainerNetworks: ~p",[ContainerNetworks]),
   Interfaces = get_interfaces(ContainerNetworks,DefaultNetwork),
   %io:format("ContainerNets: ~p~n",[ContainerNets]),
   string:join(lists:map(fun(Net) ->
