@@ -4,14 +4,16 @@
 
 -export([
          any_docker_containers/0,
+         container_nets/3,
          container_networks/0,
          default_network/0,
          for_default_network/2,
          get_interfaces/2,
-         is_docker_instance/0,
          iptables/0,
+         is_docker_instance/0,
+         nets/0,
          per_container/3,
-         per_network/3
+         per_network/2
         ]).
 
 -spec is_docker_instance() -> boolean().
@@ -35,7 +37,7 @@ any_docker_containers() ->
         [] ->
           false;
         _ ->
-         ?LOG_DEBUG("containers: %p",[Containers]),
+         ?LOG_DEBUG("containers: ~p",[Containers]),
           true
       end;
     false ->
@@ -46,6 +48,7 @@ any_docker_containers() ->
 iptables() ->
   DefaultNetwork = default_network(),
   ContainerNetworks = container_networks(),
+  Networks = nets(),
 %  case ContainerNetworks of 
 %    [] ->
 %      {[],[]};
@@ -56,14 +59,17 @@ iptables() ->
     C = fun(Template) ->
              per_container(ContainerNetworks,DefaultNetwork,Template)
          end,
+    CP = fun(Template) ->
+             per_public_container(ContainerNetworks,DefaultNetwork,Template)
+         end,
     N = fun(Template) ->
-             per_network(ContainerNetworks,DefaultNetwork,Template)
+             per_network(Networks,Template)
          end,
     P = fun(String) ->
              io_lib:format("~s",[String])
          end,
-    %io:format("~p~n",[DefaultNetwork]),
-    %io:format("~p~n~p~n",[ContainerNetworks,DefaultNetwork]),
+    ?LOG_DEBUG("~p~n",[DefaultNetwork]),
+    ?LOG_DEBUG("~p~n~p~n",[ContainerNetworks,DefaultNetwork]),
     IptablesNat = [ 
                 D(<<"*nat
 :PREROUTING ACCEPT [0:0]
@@ -75,10 +81,10 @@ iptables() ->
 -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER">>),
                 D(<<"-A POSTROUTING -s {{container_network}} ! -o {{bridge_interface}} -j MASQUERADE">> ),
                 C(<<"-A POSTROUTING -s {{container_ip}}/32 -d {{container_ip}}/32 -p {{protocol}} -m {{protocol}} --dport {{private_port}} -j MASQUERADE">> ),
-                N(<<"-A POSTROUTING -s {{container_network}}/{{container_netmask}} ! -o {{bridge_interface}} -j MASQUERADE">>),
+                N(<<"-A POSTROUTING -s {{subnet}} ! -o {{bridge_interface}} -j MASQUERADE">>),
                 D(<<"-A DOCKER -i {{bridge_interface}} -j RETURN">>),
                 C(<<"-A DOCKER -i {{bridge_interface}} -j RETURN">>),
-                C(<<"-A DOCKER ! -i {{bridge_interface}} -p {{protocol}} -m {{protocol}} --dport {{public_port}} -j DNAT --to-destination {{container_ip}}:{{private_port}}">> ),
+                CP(<<"-A DOCKER ! -i {{bridge_interface}} -p {{protocol}} -m {{protocol}} --dport {{public_port}} -j DNAT --to-destination {{container_ip}}:{{private_port}}">> ),
                 P(<<"COMMIT">>),
                 P(<<"">>)
                ],
@@ -205,7 +211,7 @@ default_network() ->
 
 container_networks() ->
   {ok, Containers} = docker_container:containers(),
-  %io:format("Containers: ~p~n",[Containers]),
+  ?LOG_DEBUG("Containers: ~p",[Containers]),
   ContainerNetworks = case Containers of
                         [] ->
                           [];
@@ -244,36 +250,122 @@ container_networks() ->
                                                       PrivatePort = maps:get(<<"PrivatePort">>, PortMap),
                                                       Protocol = maps:get(<<"Type">>, PortMap),
                                                       PublicPort = maps:get(<<"PublicPort">>, PortMap,[]),
-                                                      case PublicPort of
-                                                        [] ->
-                                                          [];
-                                                        _ ->
-                                                          #{"network_mode" => NetworkMode, 
-                                                            "host_ip" => HostIP, 
-                                                            "public_port" => PublicPort, 
-                                                            "private_port" => PrivatePort, 
-                                                            "protocol" => Protocol, 
-                                                            "nets" => Nets
-                                                           }
-                                                      end
+                                                      #{"network_mode" => NetworkMode, 
+                                                        "host_ip" => HostIP, 
+                                                        "public_port" => PublicPort, 
+                                                        "private_port" => PrivatePort, 
+                                                        "protocol" => Protocol, 
+                                                        "nets" => Nets
+                                                       }
                                                   end, ContainerPorts)
                                     end, Containers)
                       end,
   lists:reverse(lists:flatten(ContainerNetworks)).
+%container_networks() ->
+%  {ok, Containers} = docker_container:containers(),
+%  ?LOG_DEBUG("Containers: ~p",[Containers]),
+%  ContainerNetworks = case Containers of
+%                        [] ->
+%                          [];
+%                        _ ->
+%                          lists:map(fun(Container) -> 
+%                                        ContainerMap = jsn:new(Container),
+%                                        NetworkMode = maps:get(<<"NetworkMode">>,maps:from_list(maps:get(<<"HostConfig">>,ContainerMap))),
+%                                        ContainerNetworks = maps:get(<<"Networks">>,maps:from_list(maps:get(<<"NetworkSettings">>,ContainerMap))),
+%                                        Nets = container_nets(ContainerMap, NetworkMode, ContainerNetworks),
+%                                        Nets
+%                                    end, Containers)
+%                      end,
+%  lists:reverse(lists:flatten(ContainerNetworks)).
+
+nets() ->
+    {ok, Networks} = docker_container:networks(),
+    Nets = lists:map(fun(Network) ->
+                      NetworkMap = jsn:new(Network),
+                      Name = maps:get(<<"Name">>, NetworkMap),
+                      Driver = maps:get(<<"Driver">>, NetworkMap),
+                      BridgeInterface = case Name of
+                                 <<"bridge">> ->
+                                     <<"docker0">>;
+                                 _ ->
+                                      NetworkId = binary:bin_to_list(maps:get(<<"Id">>,NetworkMap)),
+                                      ShortNetworkId = binary:list_to_bin(string:slice(NetworkId,0,12)),
+                                      BridgePrefix = <<"br-">>,
+                                      <<BridgePrefix/binary,ShortNetworkId/binary>>
+                             end,
+                      Ipam = maps:from_list(maps:get(<<"IPAM">>, NetworkMap)),
+                      Config = maps:get(<<"Config">>, Ipam),
+                      case Config of
+                          [] ->
+                           Subnet = [],
+                           Gateway = [];
+                          _ ->
+                           FirstConfig = maps:from_list(hd(Config)),
+                           Subnet = maps:get(<<"Subnet">>,FirstConfig),
+                           Gateway = maps:get(<<"Gateway">>,FirstConfig)
+                      end,
+                      #{"bridge_interface" => BridgeInterface,
+                        "name" => Name,
+                        "subnet" => Subnet,
+                        "gateway" => Gateway,
+                        "driver" => Driver}
+              end, Networks),
+    [Net || Net <- Nets, maps:get("subnet",Net) =/= []].
+
+container_nets(ContainerMap, NetworkMode, ContainerNetworks) ->
+    lists:map(fun(Network) ->
+                      NetworkMap = jsn:new(Network),
+                      Nmap = maps:from_list(hd(maps:values(NetworkMap))),
+                      ?LOG_DEBUG("NetworkMap: ~p~n",[Nmap]),
+                      ContainerIp = maps:get(<<"IPAddress">>,Nmap),
+                      ContainerNetmask= maps:get(<<"IPPrefixLen">>,Nmap),
+                      NetworkId = binary:bin_to_list(maps:get(<<"NetworkID">>,Nmap)),
+                      ShortNetworkId = binary:list_to_bin(string:slice(NetworkId,0,12)),
+                      BridgePrefix = <<"br-">>,
+                      BridgeInterface= <<BridgePrefix/binary,ShortNetworkId/binary>>,
+                      {ok,ParsedContainerIp} = inet:parse_address(binary_to_list(ContainerIp)),
+                      ?LOG_DEBUG("ContainerIp: ~p~n",[ContainerIp]),
+                      ?LOG_DEBUG("ContainerNetmask: ~p~n",[ContainerNetmask]),
+                      ?LOG_DEBUG("ParsedContainerIp: ~p~n",[ParsedContainerIp]),
+                      M = inet_utils:mask_address(ParsedContainerIp,ContainerNetmask),
+                      ContainerNetwork = binary_to_list(inet_utils:inet_ntoa(M)) ++ "/" ++ integer_to_list(ContainerNetmask),
+                      %print(f"{container_name} {container_ip}/{container_netmask} {bridge_interface}")
+                      ContainerPorts = maps:get(<<"Ports">>,ContainerMap),
+                      ContainerPortNetworks = container_port_networks(ContainerPorts),
+                      %?LOG_DEBUG("ContainerPortNetworks: ~p~n",[ContainerPortNetworks]),
+                      #{"bridge_interface" => BridgeInterface,
+                        "container_ip" => ContainerIp,
+                        "container_netmask" => ContainerNetmask,
+                        "container_network" => ContainerNetwork,
+                        "network_mode" => NetworkMode,
+                        "ports" => ContainerPortNetworks}
+              end, ContainerNetworks).
+
+container_port_networks(ContainerPorts) ->
+    lists:map(fun(Port)-> 
+                      PortMap = jsn:new(Port),
+                      HostIP = maps:get(<<"IP">>,PortMap,[]),
+                      PrivatePort = maps:get(<<"PrivatePort">>, PortMap),
+                      Protocol = maps:get(<<"Type">>, PortMap),
+                      PublicPort = maps:get(<<"PublicPort">>, PortMap,[]),
+                      #{ 
+                        "host_ip" => HostIP, 
+                        "public_port" => PublicPort, 
+                        "private_port" => PrivatePort, 
+                        "protocol" => Protocol
+                       }
+              end, ContainerPorts).
 
 get_interfaces(ContainerNetworks,DefaultNetwork) ->
   BridgeInterfaces = lists:map(fun(Container) ->
-                Nets = maps:get("nets",Container),
-                lists:map(fun(Net) ->
-                              {maps:get("bridge_interface",Net),Net}
-                          end, Nets)
+                              maps:get("bridge_interface",Container)
             end, ContainerNetworks),
-  DefaultBridgeInterface = {maps:get("bridge_interface",DefaultNetwork),DefaultNetwork},
-  maps:values(maps:from_list(lists:flatten([BridgeInterfaces,DefaultBridgeInterface]))).
+  DefaultBridgeInterface = maps:get("bridge_interface",DefaultNetwork),DefaultNetwork,
+  lists:flatten([BridgeInterfaces,DefaultBridgeInterface]).
 
 per_container(ContainerNetworks,DefaultNetwork,Template) ->
   string:join(lists:map(fun(Container) ->
-                            %io:format("Container: ~p~n",[Container]),
+                            ?LOG_DEBUG("Container: ~p",[Container]),
                             Nets = maps:get("nets",Container),
                             NetworkMode = maps:get("network_mode",Container),
                             lists:map(fun(Net) ->
@@ -283,24 +375,45 @@ per_container(ContainerNetworks,DefaultNetwork,Template) ->
                                                    _ ->
                                                      maps:merge(maps:merge(DefaultNetwork,Net),Container)
                                                  end,
-                                          %io:format("Net2: ~p~n",[Net2]),
+                                          ?LOG_DEBUG("Net2: ~p~n",[Net2]),
                                           bbmustache:render(
                                             Template
                                             ,Net2)
                                       end, Nets)
                         end, ContainerNetworks),"\n").
 
+per_public_container(ContainerNetworks,DefaultNetwork,Template) ->
+  PublicContainerNetworks = [Net || Net <- ContainerNetworks, maps:get("public_port",Net) =/= []],                        
+  Nets = lists:map(fun(Container) ->
+                            ?LOG_DEBUG("Container: ~p",[Container]),
+                            Nets = maps:get("nets",Container),
+                            NetworkMode = maps:get("network_mode",Container),
+                            lists:map(fun(Net) ->
+                                          Net2 = case NetworkMode of
+                                                   <<"default">> ->
+                                                     maps:merge(maps:merge(Net,DefaultNetwork),Container);
+                                                   _ ->
+                                                     maps:merge(maps:merge(DefaultNetwork,Net),Container)
+                                                 end,
+                                          ?LOG_DEBUG("Net2: ~p~n",[Net2]),
+                                          bbmustache:render(
+                                            Template
+                                            ,Net2)
+                                      end, Nets)
+                        end, PublicContainerNetworks),
+    string:join(Nets,"\n").
 
-per_network(ContainerNetworks,DefaultNetwork,Template) ->
-  Interfaces = get_interfaces(ContainerNetworks,DefaultNetwork),
-  %io:format("ContainerNets: ~p~n",[ContainerNets]),
+per_network(Nets,Template) ->
+ %?LOG_DEBUG("ContainerNetworks: ~p",[ContainerNetworks]),
+  %Interfaces = get_interfaces(ContainerNetworks,DefaultNetwork),
+  %?LOG_DEBUG("ContainerNets: ~p~n",[ContainerNets]),
   string:join(lists:map(fun(Net) ->
-      %io:format("Net: ~p~n",[Net]),
-      R = binary_to_list(bbmustache:render(
-        Template
-        ,Net)),
-      R
-            end, Interfaces),"\n").
+          ?LOG_DEBUG("Net: ~p~n",[Net]),
+          R = binary_to_list(bbmustache:render(
+            Template
+            ,Net)),
+          R
+            end, Nets),"\n").
 
 for_default_network(DefaultNetwork,Template) ->
   R = binary_to_list(bbmustache:render(
