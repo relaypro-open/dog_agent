@@ -35,6 +35,7 @@ any_docker_containers() ->
         [] ->
           false;
         _ ->
+         ?LOG_DEBUG("containers: %p",[Containers]),
           true
       end;
     false ->
