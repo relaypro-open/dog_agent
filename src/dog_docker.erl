@@ -74,7 +74,7 @@ iptables() ->
 -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER">>),
                 D(<<"-A POSTROUTING -s {{container_network}} ! -o {{bridge_interface}} -j MASQUERADE">> ),
                 C(<<"-A POSTROUTING -s {{container_ip}}/32 -d {{container_ip}}/32 -p {{protocol}} -m {{protocol}} --dport {{private_port}} -j MASQUERADE">> ),
-                N(<<"-A POSTROUTING -s {{container_network}} ! -o {{bridge_interface}} -j MASQUERADE">>),
+                N(<<"-A POSTROUTING -s {{container_network}}/{{container_netmask}} ! -o {{bridge_interface}} -j MASQUERADE">>),
                 D(<<"-A DOCKER -i {{bridge_interface}} -j RETURN">>),
                 C(<<"-A DOCKER -i {{bridge_interface}} -j RETURN">>),
                 C(<<"-A DOCKER ! -i {{bridge_interface}} -p {{protocol}} -m {{protocol}} --dport {{public_port}} -j DNAT --to-destination {{container_ip}}:{{private_port}}">> ),
