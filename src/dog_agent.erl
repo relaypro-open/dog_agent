@@ -14,7 +14,9 @@
 
 -export([
      keepalive/0, 
-     start_link/0,  watch_interfaces/0,
+     start_link/0,  
+     watch_docker/0,
+     watch_interfaces/0,
      watch_iptables/0,
      create_ipsets/1, read_hash/0
   ]).
@@ -76,6 +78,11 @@ watch_interfaces() ->
 -spec keepalive() -> ok.
 
 keepalive() -> gen_server:call(?MODULE, keepalive).
+
+-spec watch_docker() -> ok.
+
+watch_docker() ->
+    gen_server:call(?MODULE, watch_docker).
 
 -spec read_hash() -> Hash :: list().
 
@@ -219,6 +226,9 @@ init(_Args) ->
     KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
+    WatchDockerPollMilliseconds = application:get_env(dog, watch_docker_poll_seconds, 15) * 1000,
+    _DockerTimer = erlang:send_after(WatchDockerPollMilliseconds, self(),
+                  watch_docker),
     State = init_state(),
     ?LOG_DEBUG("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
@@ -271,6 +281,7 @@ init_state() ->
         Hostkey
     end,
     ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
+    DockerContainerIds = dog_docker:get_container_ids(),
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
@@ -284,7 +295,7 @@ init_state() ->
 	        Ec2SecurityGroupIds,
 	        Ec2OwnerId,Ec2InstanceTags,
 		OS_Distribution,OS_Version,
-		Ec2VpcId, Ec2SubnetId),
+		Ec2VpcId, Ec2SubnetId, DockerContainerIds),
     State.
 
 %
@@ -406,6 +417,11 @@ handle_info(keepalive, State) ->
     {ok, NewState} = dog_ips:do_keepalive(State),
     KeepalivePollSeconds = application:get_env(dog, keepalive_poll_seconds, 60) * 1000,
     erlang:send_after(KeepalivePollSeconds, self(), keepalive),
+    {noreply, NewState};
+handle_info(watch_docker, State) ->
+    {ok, NewState} = dog_docker:do_watch_docker(State),
+    WatchDockerPollMilliseconds = application:get_env(dog, watch_docker_poll_seconds, 15) * 1000,
+    erlang:send_after(WatchDockerPollMilliseconds, self(), watch_docker),
     {noreply, NewState};
 handle_info(Info, State) ->
     ?LOG_ERROR("unknown_message: Info: ~p, State: ~p",

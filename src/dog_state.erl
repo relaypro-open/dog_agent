@@ -10,12 +10,13 @@
         ]).
 
 -export([
-	 get_os_distribution/1,
-	 get_os_version/1,
-	 set_ec2_region/2,
-	 set_os_distribution/2,
-	 set_os_version/2,
-         dog_state/24,
+         get_os_distribution/1,
+         get_os_version/1,
+         set_ec2_region/2,
+         set_os_distribution/2,
+         set_os_version/2,
+         dog_state/25,
+         get_docker_container_ids/1,
          get_ec2_availability_zone/1,
          get_ec2_instance_id/1,
          get_ec2_instance_tags/1,
@@ -38,6 +39,7 @@
          get_provider/1, 
          get_updatetype/1,
          get_version/1, 
+         set_docker_container_ids/2,
          set_ec2_availability_zone/2,
          set_ec2_instance_id/2,
          set_ec2_instance_tags/2,
@@ -61,6 +63,7 @@
          set_version/2
         ]).
 
+-type docker_container_ids() :: [binary()].
 -type ec2_availability_zone() :: string().
 -type ec2_instance_id() :: string().
 -type ec2_instance_tags() :: map().
@@ -87,7 +90,7 @@
      interfaces, version, hash4_ipsets, hash6_ipsets,
      hash4_iptables, hash6_iptables, provider, updatetype,
      ipset_hash,ec2_region,ec2_instance_id,ec2_availability_zone,ec2_security_group_ids,ec2_owner_id,
-     ec2_instance_tags,os_distribution,os_version,ec2_vpc_id,ec2_subnet_id}).
+     ec2_instance_tags,os_distribution,os_version,ec2_vpc_id,ec2_subnet_id,docker_container_ids}).
 
 -type dog_state() :: #dog_state{}.
 
@@ -96,7 +99,7 @@ dog_state(Group, Hostname, Location, Environment,
       Hash4Iptables, Hash6Iptables, Provider, UpdateType,
       IpsetHash, Ec2Region, Ec2InstanceId, Ec2AvailabilityZone, 
       Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags,
-      OS_Distribution, OS_Version, Ec2VpcId, Ec2SubnetId) ->
+      OS_Distribution, OS_Version, Ec2VpcId, Ec2SubnetId,DockerContainerIds) ->
     #dog_state{group = Group, name = Hostname,
            location = Location, environment = Environment,
            hostkey = Hostkey, interfaces = Interfaces,
@@ -114,7 +117,8 @@ dog_state(Group, Hostname, Location, Environment,
 	   os_distribution = OS_Distribution,
 	   os_version = OS_Version,
 	   ec2_vpc_id = Ec2VpcId,
-	   ec2_subnet_id = Ec2SubnetId
+	   ec2_subnet_id = Ec2SubnetId,
+       docker_container_ids = DockerContainerIds
               }.
 
 -spec get_group(State :: dog_state()) -> binary().
@@ -315,6 +319,14 @@ get_ec2_instance_tags(State) -> State#dog_state.ec2_instance_tags.
 set_ec2_instance_tags(State, Ec2InstanceTags) ->
     State#dog_state{ec2_instance_tags = Ec2InstanceTags}.
 
+-spec get_docker_container_ids(State :: dog_state()) -> map().
+get_docker_container_ids(State) -> State#dog_state.docker_container_ids.
+
+-spec set_docker_container_ids(State :: dog_state(),
+            DockerContainerIds :: docker_container_ids()) -> dog_state().
+set_docker_container_ids(State, DockerContainerIds) ->
+    State#dog_state{docker_container_ids = DockerContainerIds}.
+
 to_map(State) ->
     Interfaces = jsx:encode(State#dog_state.interfaces),
     #{<<"name">> => State#dog_state.name,
@@ -340,7 +352,8 @@ to_map(State) ->
       <<"os_distribution">> => State#dog_state.os_distribution,
       <<"os_version">> => State#dog_state.os_version,
       <<"ec2_vpc_id">> => State#dog_state.ec2_vpc_id,
-      <<"ec2_subnet_id">> => State#dog_state.ec2_subnet_id
+      <<"ec2_subnet_id">> => State#dog_state.ec2_subnet_id,
+      <<"docker_container_ids">> => State#dog_state.docker_container_ids
      }.
 
 from_map(StateMap) ->
@@ -369,7 +382,8 @@ from_map(StateMap) ->
         os_distribution = maps:get(<<"os_distribution">>,StateMap),
         os_version = maps:get(<<"os_version">>,StateMap),
         ec2_vpc_id = maps:get(<<"ec2_vpc_id">>,StateMap),
-        ec2_subnet_id = maps:get(<<"ec2_subnet_id">>,StateMap)
+        ec2_subnet_id = maps:get(<<"ec2_subnet_id">>,StateMap),
+        docker_container_ids = maps:get(<<"docker_container_ids">>,StateMap)
     }.
 
 to_group_routing_key(State) ->

@@ -7,7 +7,9 @@
          container_nets/3,
          container_networks/0,
          default_network/0,
+         do_watch_docker/1,
          for_default_network/2,
+         get_container_ids/0,
          get_interfaces/2,
          iptables/0,
          is_docker_instance/0,
@@ -43,6 +45,25 @@ any_docker_containers() ->
     false ->
       false
   end.
+
+-spec get_container_ids() -> list().
+get_container_ids() ->
+    {ok, Containers} = docker_container:containers(),
+    [maps:get(<<"Id">>,jsn:new(Container)) || Container <- Containers].
+
+-spec do_watch_docker(State :: map()) -> NewState :: map().
+do_watch_docker(State) ->
+    OldDockerContainerIds = dog_state:get_docker_container_ids(State),
+    NewDockerContainerIds = get_container_ids(),
+    case ordsets:from_list(OldDockerContainerIds) =/= ordsets:from_list(NewDockerContainerIds) of
+        true ->
+            ?LOG_DEBUG("NewDockerContainerIds: ~p",[NewDockerContainerIds]),
+            NewState = dog_state:set_docker_container_ids(State,NewDockerContainerIds),
+            dog_iptables:recreate_ruleset(),
+            {ok, NewState};
+        false ->
+            {ok, State}
+    end.
 
 -spec iptables() -> {IptablesNat :: iolist(), IptablesFilter :: iolist()}.
 iptables() ->

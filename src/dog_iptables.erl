@@ -11,6 +11,7 @@
          read_current_ipv4_iptables/0,
          read_current_ipv6_ipsets/0,
          read_current_ipv6_iptables/0,
+         recreate_ruleset/0,
          remove_comments/1,
          remove_docker/1,
          remove_quotes/1,
@@ -423,6 +424,10 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
                     R6IpsetsRuleset, R4IptablesRuleset,
                           R6IptablesRuleset),
     {ack, State }.
+
+recreate_ruleset() -> 
+    R4IpsetsRulesetFile  = (?RUNDIR) ++ "/iptables.txt",
+    apply_ipv4_ruleset(R4IpsetsRulesetFile).
 
 handle_callback(Ipsets, R4IpsetsRuleset,    
                     R6IpsetsRuleset, R4IptablesRuleset,
