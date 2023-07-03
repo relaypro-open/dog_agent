@@ -226,9 +226,7 @@ init(_Args) ->
     KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
     _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
-    WatchDockerPollMilliseconds = application:get_env(dog, watch_docker_poll_seconds, 15) * 1000,
-    _DockerTimer = erlang:send_after(WatchDockerPollMilliseconds, self(),
-                  watch_docker),
+    start_docker_watch(),
     State = init_state(),
     ?LOG_DEBUG("State: ~p", [State]),
     StateMap = dog_state:to_map(State),
@@ -281,7 +279,7 @@ init_state() ->
         Hostkey
     end,
     ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
-    DockerContainerIds = dog_docker:get_container_ids(),
+    DockerContainerIds = [],
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
                 Hostkey1, Interfaces, Version,
@@ -297,6 +295,16 @@ init_state() ->
 		OS_Distribution,OS_Version,
 		Ec2VpcId, Ec2SubnetId, DockerContainerIds),
     State.
+
+start_docker_watch() ->
+    case dog_docker:is_docker_instance() of
+      true ->
+        WatchDockerPollMilliseconds = application:get_env(dog, watch_docker_poll_seconds, 15) * 1000,
+        _DockerTimer = erlang:send_after(WatchDockerPollMilliseconds, self(),
+                      watch_docker);
+      false ->
+            pass
+    end.
 
 %
 %%----------------------------------------------------------------------
