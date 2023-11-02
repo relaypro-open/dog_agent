@@ -1,7 +1,7 @@
-# Build stage 0
+#Build stage 0
 FROM erlang:23 as base
 
-RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl
+RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils netcat
 
 #Set working directory
 RUN mkdir /data
@@ -35,7 +35,8 @@ COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application
 COPY --from=compile /data/_build/default/rel/dog /opt/dog
-RUN chmod 4555 /opt/dog/lib/erlexec-1.20.1/priv/x86_64-pc-linux-gnu/exec-port
+RUN ls /opt/dog/lib
+RUN chmod 4555 /opt/dog/lib/erlexec-*/priv/x86_64-pc-linux-gnu/exec-port
 RUN mkdir -p /home/dog/bin
 RUN cp /sbin/ipset /home/dog/bin/ipset
 RUN cp /usr/sbin/iptables-save /home/dog/bin/
@@ -53,3 +54,4 @@ RUN mkdir -p /etc/dog/certs \
 	&& chmod 700 /etc/dog/private
 
 CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
+#CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "sleep infinity"
