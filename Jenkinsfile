@@ -10,6 +10,33 @@ pipeline {
             BUILD_ID = "${VersionNumber(projectStartDate: '1970-01-01', versionNumberString: '${BUILD_DATE_FORMATTED, \"yyyy-MM-dd_H-m-s\"}')}"
         }
 
+    parameters {
+        booleanParam(name: 'deploy',
+                     defaultValue: false,
+                     description: 'Whether or not to deploy this new build to the environment selected below.')
+        string(name: 'branch',
+               defaultValue: 'main',
+               description: 'The source branch to compile.')
+        choice(name: 'env',
+               choices: ['mob_qa','mob_pro','beta_qa','stage.qa','api.qa','api.pro'],
+               description: 'If deploying, which ansible environment to deploy to.  Determines deployment target')
+        choice(name: 'dog_env',
+               choices: ['qa','pro'],
+               description: 'If deploying, which dog environment to deploy to.  Determines which dog_trainer this build will connect to')
+        string(name: 'target',
+               defaultValue: '',
+               description: 'The target host/group.')
+        string(name: 'flags',
+               defaultValue: '--tags upgrade',
+               description: 'ansible flags')
+        choice(name: 'erlang_version',
+               choices: ['24.3.4.2','23.3.4.3'],
+               description: 'The erlang_version dog_agent_ex will be built with')
+        choice(name: 'release_path',
+               choices: ['deployable/rel/dog_agent/','test/rel/dog_agent/'],
+               description: 'deployable or test type of artifact')
+    }
+
     stages {
 
         stage('Matrix Build') {
