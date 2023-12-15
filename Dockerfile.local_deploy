@@ -63,11 +63,8 @@ RUN mkdir -p /etc/dog/certs \
 	&& chmod 700 /etc/dog/private
 RUN tar czf /tmp/dog_agent.tar.gz /opt/dog
 
-FROM alpine AS tar
-COPY --from=deploy /tmp/dog_agent.tar.gz / 
-
 RUN mkdir /etc/rabbitmq
-COPY --from=base csc_certs.sh /etc/rabbitmq/ 
+COPY csc_certs.sh /etc/rabbitmq/ 
 
 CMD /bin/sh -c "/etc/rabbitmq/csc_certs.sh" && /bin/sh -c "/opt/dog/bin/dog foreground"
 #CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "sleep infinity"
