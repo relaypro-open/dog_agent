@@ -29,7 +29,7 @@ COPY . .
 COPY --from=base /data/_build .
 #COPY config/sys.config.etc config/sys.config
 #RUN rm config/sys.config
-COPY config/sys.config.src config/sys.config.src
+COPY config/sys.config.local_docker config/sys.config
 #RUN sed -i 's/NOT_SET/local_docker/g' config/sys.config
 
 RUN ./rebar3 --version
