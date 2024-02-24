@@ -1,50 +1,53 @@
-# create this in .github/workflows/ci.yml
+name: Release
+
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'
 
 jobs:
-  test:
-    runs-on: ubuntu-20.04
-    name: Erlang/OTP ${{matrix.otp}} / rebar3 ${{matrix.rebar3}}
+  ci:
+    runs-on: ubuntu-latest
+    name: Erlang ${{matrix.otp}} / rebar ${{matrix.rebar3}}
     strategy:
       matrix:
-        otp: ['23.3.4.3']
-        rebar3: ['3.18.0']
+        otp: ['24.3.4.8']
+        rebar3: ['3.18']
     steps:
-      - uses: actions/checkout@v2
+
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/ansible_connection
+
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           rebar3-version: ${{matrix.rebar3}}
-      - name: copy file
-        uses: canastro/copy-file-action@master
-        with:
-          source: "config/sys.config.etc"
-          target: "config/sys.config"
-      - run: rebar3 tar as local_docker
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+
+      - uses: actions/cache@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          cache-name: rebar3
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
-          draft: false
-          prerelease: false
-      - name: upload linux artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          path: |
+            ~/.cache/rebar3
+            _build
+          key: ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}-${{hashFiles('rebar.lock')}}
+          restore-keys: |
+            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}
+            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}
+
+      - name: Release 
+        run: rebar3 as public tar
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: _build/default/rel/dog/dog-${{ github.sha }}.tar.gz
-          asset_name: dog-${{ github.sha }}.tar.gz
-          asset_content_type: application/gzip
+          repo_token: ${{ secrets.GH_TOKEN }}
+          file: _build/public/rel/dog_agent/dog_agent-${{ github.sha }}.tar.gz
+          asset_name: dog_agent_release_ubuntu-${{ runner.arch }}_${{ env.RELEASE_VERSION }}.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "dog_agent Erlang release"

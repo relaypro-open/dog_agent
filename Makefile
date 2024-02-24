@@ -1,13 +1,22 @@
-APP := dog
+HOSTNAME=github.com
+NAMESPACE=relaypro-open
+NAME=dog_agent
+BINARY=${NAME}
+VERSION=v1.4.0
+OS_ARCH=linux_amd64
 
-.PHONY: all
-all:
-	@(./rebar3 compile)
+default: install
 
-.PHONY: shell
-shell:
-	@(ERL_FLAGS="-config config/sys.config" ./rebar3 shell)
+build:
+	rebar3 compile
 
-.PHONY: test
-test:
-	@(./rebar3 eunit)
+release:
+	rebar3 tar as public
+
+github_release:
+	git tag ${VERSION}
+	git push --tags --force
+
+delete_release:
+	git tag -d ${VERSION}
+	git push --delete origin ${VERSION}
