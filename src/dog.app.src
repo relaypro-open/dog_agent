@@ -1,6 +1,6 @@
 {application, dog,
 	[{description, "An OTP application"},
-	{vsn, {cmd, "scripts/git_hash.sh"} },
+	{vsn, {git, long} },
 	{registered, []},
 	{mod, { dog_app, []}},
 	{applications, [
