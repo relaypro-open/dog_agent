@@ -25,8 +25,9 @@ is_docker_instance() ->
    {ok,_,_,_} -> 
      ?LOG_INFO("is_docker_instance: true"),
      true;
-   {error, _} -> 
+   {error, Error} -> 
      ?LOG_INFO("is_docker_instance: false"),
+     ?LOG_DEBUG("is_docker_instance: false, Error: ~s",[Error]),
      false
  end.
 

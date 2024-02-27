@@ -14,14 +14,15 @@
 
 {minimum_otp_vsn, "23.0"}.
 
-{escript_emu_args, "%%! -escript main dog\n -config /opt/dog/config/sys.config -home /home/dog -boot_var ERTS_LIB_DIR /opt/dog/_build/default/lib"}.
+%{escript_emu_args, "%%! -escript main dog\n -config ./config/sys.config.src -home /home/dog -boot_var ERTS_LIB_DIR /opt/dog/_build/default/lib"}.
+{escript_emu_args, "%%! -escript main dog\n -home /home/dog -boot_var ERTS_LIB_DIR /opt/dog/_build/default/lib"}.
 
 {relx, [
         {release, 
           {dog, "v1.4" }, 
 	  [dog]},
         {dev_mode, false},
-        {sys_config, "config/sys.config"},
+        {sys_config_src, "config/sys.config.src"},
         {include_erts, true},
         {extended_start_script, true},
         {extended_start_script_hooks, [
@@ -32,8 +33,6 @@
         {overlay, [
             {mkdir, "./log"},
             {mkdir, "./queuejournal"},
-            %{copy, "dog_start.sh", "./dog_start.sh"},
-            %{copy, "dog_stop.sh", "./dog_stop.sh"},
             {mkdir, "./scripts"},
             {copy, "scripts/erl", "./scripts/"},
             {copy, "scripts/hashes.escript", "./scripts/"},
@@ -46,128 +45,6 @@
     ]
 }.
 
-
-{profiles, [
-    {'api.pro', [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/pro.sys.config"}
-        ]}
-    ]},
-    {'api.qa', [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/qa.sys.config"}
-        ]}
-    ]},
-    {box, [
-	      {overrides, [
-	      %% For all apps:
-	          {del, [{erl_opts, [warnings_as_errors]}]}
-	      ]},
-        {relx, [
-            {dev_mode, false},
-            {extended_start_script, true},
-            {sys_config, "config/sys.config.box"},
-            {include_erts, true}
-        ]}
-    ]},
-    {local, [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, false},
-            {sys_config, "config/local.sys.config"}
-        ]}
-    ]},
-    {mob_qa, [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/qa.sys.config"}
-        ]}
-    ]},
-    {mob_pro, [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/pro.sys.config"}
-        ]}
-    ]},
-    {pro, [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/pro.sys.config"}
-        ]}
-    ]},
-    {qa, [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/qa.sys.config"}
-        ]}
-    ]},
-    {'stage.qa', [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/qa.sys.config"}
-        ]}
-    ]},
-    {test, [{deps, [
-        jsx,
-        meck,
-        {liet, ".*", {git, "https://github.com/relaypro-open/liet.git", {branch, "main"}}}
-    ]}]},
-    {'x.pro', [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/pro.sys.config"}
-        ]}
-    ]},
-    {'x.qa', [
-        {erl_opts, [debug_info]},
-        {relx, [
-            {dev_mode, false},
-            {include_erts, true},
-            {system_libs, true},
-            {sys_config, "config/qa.sys.config"}
-        ]}
-    ]},
-    {local_docker, [
-	      {overrides, [
-	      %% For all apps:
-	          {del, [{erl_opts, [warnings_as_errors]}]}
-	      ]},
-        {relx, [
-            {dev_mode, false},
-            {extended_start_script, true},
-            {sys_config, "config/sys.config"},
-            {include_erts, true}
-        ]}
-    ]}
-]}.
 
 {plugins, [
     {relflow, ".*", {git, "https://github.com/RJ/relflow.git", {branch, "master"}}},

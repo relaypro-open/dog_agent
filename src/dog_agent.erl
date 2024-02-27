@@ -218,7 +218,7 @@ watch_config() ->
 init(_Args) ->
     WaitSeconds = 15,
     WaitMilliSeconds = WaitSeconds * 1000,
-    ?LOG_INFO("Waiting %s seconds for rabbitmq initialization",[WaitSeconds]),
+    ?LOG_INFO("Waiting ~s seconds for rabbitmq initialization",[WaitSeconds]),
     timer:sleep(WaitMilliSeconds),
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),

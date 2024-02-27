@@ -69,6 +69,7 @@ RUN tar czf /tmp/dog_agent.tar.gz /opt/dog
 FROM scratch AS tar
 COPY --from=deploy /tmp/dog_agent.tar.gz / 
 
+FROM deploy as run 
 CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
 #CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "sleep infinity"
 
