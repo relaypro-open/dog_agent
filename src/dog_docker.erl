@@ -28,7 +28,6 @@ is_docker_instance() ->
  case hackney:request(Method, DockerSocketUrl, Headers, Payload, Options) of
    {ok,_,_,ClientRef} ->
      hackney:close(ClientRef),
-     ?LOG_INFO("is_docker_instance: true"),
      true;
    {error, Error} -> 
      ?LOG_INFO("is_docker_instance: false"),

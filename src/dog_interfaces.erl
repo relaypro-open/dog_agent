@@ -547,7 +547,6 @@ publish_to_queue(Config) ->
                             Message,
                             #{ delivery_mode => persistent }),
 
-  ?LOG_INFO("Response: ~p~n", [Response]),
   Response.
 
 -spec ip_to_queue() -> any().
