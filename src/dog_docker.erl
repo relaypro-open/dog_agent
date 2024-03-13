@@ -20,9 +20,14 @@
 
 -spec is_docker_instance() -> boolean().
 is_docker_instance() ->
+ Method = get,
+ Headers = [],
+ Payload = <<>>,
+ Options = [{connect_timeout,1000},{timeout, 5000}],
  DockerSocketUrl = maps:get(docker_http,maps:from_list(application:get_all_env(erldocker)),<<"http+unix://%2Fvar%2Frun%2Fdocker.sock">>),
- case hackney:get(DockerSocketUrl) of
-   {ok,_,_,_} -> 
+ case hackney:request(Method, DockerSocketUrl, Headers, Payload, Options) of
+   {ok,_,_,ClientRef} ->
+     hackney:close(ClientRef),
      ?LOG_INFO("is_docker_instance: true"),
      true;
    {error, Error} -> 
@@ -68,7 +73,7 @@ do_watch_docker(State) ->
                 {ok, State}
         end;
     false ->
-      false
+          {ok, State} %If call fails, use old state
   end.
 
 -spec iptables() -> {IptablesNat :: iolist(), IptablesFilter :: iolist()}.
