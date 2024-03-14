@@ -577,8 +577,7 @@ ec2_instance_tags() ->
   Results = lists:map(fun(Tag) ->
                           ec2_instance_tag(Tag)
                       end, TagNamesStrings),
-  Results.
-%maps:from_list(Results).
+  maps:from_list(Results).
 
 -spec get_ec2_instance_tags() -> string().
 get_ec2_instance_tags() ->
