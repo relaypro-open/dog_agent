@@ -224,13 +224,23 @@ cache_instance_metadata_availability_zone() ->
 
 -spec ec2_availability_zone() -> string().
 ec2_availability_zone() ->
-  {ok, Az} = get_availability_zone(),
-  Az.
+  case get_availability_zone() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2 availability_zone"),
+           {error, notfound};
+      {ok, Az} ->
+          Az
+  end.
 
 -spec ec2_instance_id() -> {ok, binary()} | {error, term()}.
 ec2_instance_id() ->
-  {ok, Id} = get_ec2_instance_id(),
-  Id.
+  case get_ec2_instance_id() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_instance_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
 
 -spec get_ec2_instance_id() -> {ok, binary()} | {error, term()}.
 get_ec2_instance_id() ->
@@ -305,8 +315,13 @@ ec2_owner_id() ->
 
 -spec ec2_owner_id(Mac :: string()) -> string().
 ec2_owner_id(Mac) ->
-  {ok, Id} = get_ec2_owner_id(Mac),
-  Id.
+  case get_ec2_owner_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_owner_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
 
 -spec get_ec2_owner_id(Mac :: iolist()) -> {ok, binary()} | {error, term()}.
 get_ec2_owner_id(Mac) ->
@@ -348,8 +363,13 @@ ec2_subnet_id() ->
 
 -spec ec2_subnet_id(Mac :: string()) -> string().
 ec2_subnet_id(Mac) ->
-  {ok, Id} = get_ec2_subnet_id(Mac),
-  Id.
+  case get_ec2_subnet_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_subnet_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
 
 -spec get_ec2_subnet_id(Mac :: iolist()) -> {ok, binary()} | {error, term()}.
 get_ec2_subnet_id(Mac) ->
@@ -391,8 +411,13 @@ ec2_vpc_id() ->
 
 -spec ec2_vpc_id(Mac :: string()) -> string().
 ec2_vpc_id(Mac) ->
-  {ok, Id} = get_ec2_vpc_id(Mac),
-  Id.
+  case get_ec2_vpc_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_vpc_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
 
 -spec get_ec2_vpc_id(Mac :: iolist()) -> {ok, binary()} | {error, term()}.
 get_ec2_vpc_id(Mac) ->
@@ -576,13 +601,18 @@ ip_to_queue() ->
 
 -spec ec2_instance_tags() -> {ok, binary()} | {error, term()}.
 ec2_instance_tags() ->
-  {ok, Tags} = get_ec2_instance_tags(),
-  TagNames = re:split(Tags, "\n", [{return, list},trim]),
-  TagNamesStrings = [list_to_binary(Tn) || Tn <- TagNames],
-  Results = lists:map(fun(Tag) ->
-                          ec2_instance_tag(Tag)
-                      end, TagNamesStrings),
-  maps:from_list(Results).
+  case get_ec2_instance_tags() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_instance_tags"),
+           #{};
+      {ok, Tags} ->
+          TagNames = re:split(Tags, "\n", [{return, list},trim]),
+          TagNamesStrings = [list_to_binary(Tn) || Tn <- TagNames],
+          Results = lists:map(fun(Tag) ->
+                                  ec2_instance_tag(Tag)
+                              end, TagNamesStrings),
+          maps:from_list(Results)
+  end.
 
 -spec get_ec2_instance_tags() -> string().
 get_ec2_instance_tags() ->
