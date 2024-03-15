@@ -415,16 +415,21 @@ cache_ec2_vpc_id(Mac) ->
       Error
   end.
 
+
 -spec ec2_public_ipv4(Mac :: string()) -> string().
 ec2_public_ipv4(Mac) ->
-  {ok, Id} = get_ec2_public_ipv4(Mac),
-  Id.
+  case get_ec2_public_ipv4(Mac) of                        
+      {error, _} ->
+          {error, notfound};
+      {ok, Id} ->
+          Id 
+  end.
 
 -spec get_ec2_public_ipv4(Mac :: iolist()) -> string().
 get_ec2_public_ipv4(Mac) ->
   Config = #aws_config{},
   IMDSv2Token = maybe_imdsv2_session_token(Config),
-  case erlcloud_ec2_meta:get_instance_metadata("network/interfaces/macs/" ++ Mac ++ "/public-ipv4s", Config, IMDSv2Token) of
+  case erlcloud_ec2_meta:get_instance_metadata("network/interfaces/macs/" ++ Mac ++ "/public-ipv4sX", Config, IMDSv2Token) of
     {ok, _Id} = OkResult ->
       OkResult;
     {error, _} = Error ->
