@@ -197,8 +197,72 @@ ec2_public_ipv4() ->
       end
   end.
 
+<<<<<<< HEAD
 -spec get_ec2_metadata(Uri :: string() ) -> string().
 get_ec2_metadata(Uri) ->
+=======
+-spec ec2_region() -> string().
+ec2_region() ->
+  case ec2_availability_zone() of
+    <<"">> ->
+      <<"">>;
+    AZ ->
+      string:slice(AZ,0,string:length(AZ) - 1)
+  end.
+
+-spec get_availability_zone() -> {ok, binary()} | {error, term()}.
+get_availability_zone() ->
+  case application:get_env(erlcloud, availability_zone) of
+    {ok, AZ} = OkResult when is_binary(AZ) ->
+      OkResult;
+    _ ->
+      cache_instance_metadata_availability_zone()
+  end.
+
+-spec cache_instance_metadata_availability_zone() -> {ok, binary()} | {error, term()}.
+cache_instance_metadata_availability_zone() ->
+  % it fine to use default here - no IAM is used, only for http client
+  % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
+  case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
+    {ok, AZ} = OkResult ->
+      application:set_env(erlcloud, availability_zone, AZ),
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+
+-spec ec2_availability_zone() -> string().
+ec2_availability_zone() ->
+  case get_availability_zone() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2 availability_zone"),
+           {error, notfound};
+      {ok, Az} ->
+          Az
+  end.
+
+-spec ec2_instance_id() -> {ok, binary()} | {error, term()}.
+ec2_instance_id() ->
+  case get_ec2_instance_id() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_instance_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
+
+-spec get_ec2_instance_id() -> {ok, binary()} | {error, term()}.
+get_ec2_instance_id() ->
+  case application:get_env(erlcloud, instance_id) of
+    {ok, Id} = OkResult when is_binary(Id) ->
+      OkResult;
+    _ ->
+      cache_ec2_instance_id()
+  end.
+
+-spec cache_ec2_instance_id() -> string().
+cache_ec2_instance_id() ->
+>>>>>>> 1d18942cc1fb308950b8b6ba0eb163daea23e32d
   Config = #aws_config{},
   IMDSv2Token = maybe_imdsv2_session_token(Config),
   case erlcloud_ec2_meta:get_instance_metadata(Uri, Config, IMDSv2Token) of
@@ -281,10 +345,22 @@ ec2_owner_id() ->
   {_, Result} = get_ec2_metadata(Uri),
   Result.
 
+<<<<<<< HEAD
 -spec ec2_security_group_ids() -> list() | [].
 ec2_security_group_ids() ->
   Fun = fun ec2_security_group_ids/1,
   ec2_metadata_macs(Fun).
+=======
+-spec ec2_owner_id(Mac :: string()) -> string().
+ec2_owner_id(Mac) ->
+  case get_ec2_owner_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_owner_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
+>>>>>>> 1d18942cc1fb308950b8b6ba0eb163daea23e32d
 
 -spec ec2_security_group_ids(Mac :: string()) -> list() | [].
 ec2_security_group_ids(Mac) ->
@@ -294,10 +370,58 @@ ec2_security_group_ids(Mac) ->
 
 -spec ec2_subnet_id() -> string().
 ec2_subnet_id() ->
+<<<<<<< HEAD
   Mac = get_first_mac(),
   Uri = "network/interfaces/macs/" ++ Mac ++ "/subnet-id",
   {_, Result} = get_ec2_metadata(Uri),
   Result.
+=======
+  case ec2_macs() of
+    {error, _} ->
+      <<"">>;
+    Macs ->
+      Results = lists:map(fun(Mac) ->
+                              ec2_subnet_id(Mac)
+                          end, Macs),
+      case lists:any(fun(Result) -> Result == {error, notfound} end, Results) of
+        true ->
+          <<"">>;
+        false ->
+          hd(Results)
+      end
+  end.
+
+-spec ec2_subnet_id(Mac :: string()) -> string().
+ec2_subnet_id(Mac) ->
+  case get_ec2_subnet_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_subnet_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
+
+-spec get_ec2_subnet_id(Mac :: iolist()) -> {ok, binary()} | {error, term()}.
+get_ec2_subnet_id(Mac) ->
+  case application:get_env(erlcloud, ec2_subnet_id) of
+    {ok, Ids} = OkResult when is_binary(Ids) ->
+      OkResult;
+    _ ->
+      cache_ec2_subnet_id(Mac)
+  end.
+
+-spec cache_ec2_subnet_id(Mac :: iolist()) -> string().
+cache_ec2_subnet_id(Mac) ->
+  Config = #aws_config{},
+  IMDSv2Token = maybe_imdsv2_session_token(Config),
+  case erlcloud_ec2_meta:get_instance_metadata("network/interfaces/macs/" ++ Mac ++ "/subnet-id", Config, IMDSv2Token) of
+    {ok, Id} = OkResult ->
+      application:set_env(erlcloud, ec2_subnet_id, Id),
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+>>>>>>> 1d18942cc1fb308950b8b6ba0eb163daea23e32d
 
 -spec ec2_vpc_id() -> string().
 ec2_vpc_id() ->
@@ -306,7 +430,63 @@ ec2_vpc_id() ->
   {_, Result} = get_ec2_metadata(Uri),
   Result.
 
+<<<<<<< HEAD
 -spec ec2_macs() -> [string()].
+=======
+-spec ec2_vpc_id(Mac :: string()) -> string().
+ec2_vpc_id(Mac) ->
+  case get_ec2_vpc_id(Mac) of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_vpc_id"),
+           {error, notfound};
+      {ok, Id} ->
+          Id
+  end.
+
+-spec get_ec2_vpc_id(Mac :: iolist()) -> {ok, binary()} | {error, term()}.
+get_ec2_vpc_id(Mac) ->
+  case application:get_env(erlcloud, ec2_vpc_id) of
+    {ok, Ids} = OkResult when is_binary(Ids) ->
+      OkResult;
+    _ ->
+      cache_ec2_vpc_id(Mac)
+  end.
+
+-spec cache_ec2_vpc_id(Mac :: iolist()) -> string().
+cache_ec2_vpc_id(Mac) ->
+  Config = #aws_config{},
+  IMDSv2Token = maybe_imdsv2_session_token(Config),
+  case erlcloud_ec2_meta:get_instance_metadata("network/interfaces/macs/" ++ Mac ++ "/vpc-id", Config, IMDSv2Token) of
+    {ok, Id} = OkResult ->
+      application:set_env(erlcloud, ec2_vpc_id, Id),
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+
+
+-spec ec2_public_ipv4(Mac :: string()) -> string().
+ec2_public_ipv4(Mac) ->
+  case get_ec2_public_ipv4(Mac) of                        
+      {error, _} ->
+          {error, notfound};
+      {ok, Id} ->
+          Id 
+  end.
+
+-spec get_ec2_public_ipv4(Mac :: iolist()) -> string().
+get_ec2_public_ipv4(Mac) ->
+  Config = #aws_config{},
+  IMDSv2Token = maybe_imdsv2_session_token(Config),
+  case erlcloud_ec2_meta:get_instance_metadata("network/interfaces/macs/" ++ Mac ++ "/public-ipv4sX", Config, IMDSv2Token) of
+    {ok, _Id} = OkResult ->
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+
+-spec ec2_macs() -> string().
+>>>>>>> 1d18942cc1fb308950b8b6ba0eb163daea23e32d
 ec2_macs() ->
   case get_ec2_macs() of
       {ok, Macs} ->
@@ -470,6 +650,51 @@ ip_to_queue() ->
             },
   publish_to_queue(Config).
 
+<<<<<<< HEAD
+=======
+-spec ec2_instance_tags() -> {ok, binary()} | {error, term()}.
+ec2_instance_tags() ->
+  case get_ec2_instance_tags() of
+      {error, _} ->
+           ?LOG_ERROR("Error getting ec2_instance_tags"),
+           #{};
+      {ok, Tags} ->
+          TagNames = re:split(Tags, "\n", [{return, list},trim]),
+          TagNamesStrings = [list_to_binary(Tn) || Tn <- TagNames],
+          Results = lists:map(fun(Tag) ->
+                                  ec2_instance_tag(Tag)
+                              end, TagNamesStrings),
+          maps:from_list(Results)
+  end.
+
+-spec get_ec2_instance_tags() -> string().
+get_ec2_instance_tags() ->
+  Config = #aws_config{},
+  IMDSv2Token = maybe_imdsv2_session_token(Config),
+  case erlcloud_ec2_meta:get_instance_metadata("tags/instance", Config, IMDSv2Token) of
+    {ok, _Id} = OkResult ->
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+
+-spec ec2_instance_tag(Tag :: string()) -> string().
+ec2_instance_tag(Tag) ->
+  {ok, Value} = get_ec2_instance_tag(Tag),
+  {Tag, Value}.
+
+-spec get_ec2_instance_tag(Tag :: iolist()) -> string().
+get_ec2_instance_tag(Tag) ->
+  Config = #aws_config{},
+  IMDSv2Token = maybe_imdsv2_session_token(Config),
+  case erlcloud_ec2_meta:get_instance_metadata("tags/instance/" ++ Tag, Config, IMDSv2Token) of
+    {ok, _Id} = OkResult ->
+      OkResult;
+    {error, _} = Error ->
+      Error
+  end.
+
+>>>>>>> 1d18942cc1fb308950b8b6ba0eb163daea23e32d
 exec(Command) ->
   Result = exec:run(Command, [sync, stdout, stderr]),
   case Result of
