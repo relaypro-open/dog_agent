@@ -37,6 +37,10 @@
          publish_to_queue/1
         ]).
 
+-export([
+         get_ec2_metadata/1
+        ]).
+
 get_provider() ->
   case is_ec2_instance() of
     true ->
@@ -245,7 +249,7 @@ get_first_mac() ->
 -spec ec2_public_ipv4(Mac :: iolist()) -> string().
 ec2_public_ipv4(Mac) ->
   Uri = "network/interfaces/macs/" ++ Mac ++ "/public-ipv4s",
-  {ok, IPv4} = get_ec2_metadata(Uri),
+  {_, IPv4} = get_ec2_metadata(Uri),
   IPv4.
 
 -spec ec2_region() -> string().
@@ -315,13 +319,18 @@ ec2_macs() ->
           MacStrings@2 = [lists:flatten(re:split(Mac,"/",[{return, list}])) || Mac <- MacStrings@1],
           MacStrings@2;
       _ ->
-         {error, ["notfound"]} 
+         ["notfound"] 
   end.
 
 -spec get_ec2_macs() -> string().
 get_ec2_macs() ->
   Uri = "network/interfaces/macs/",
-  get_ec2_metadata(Uri).
+  case get_ec2_metadata(Uri) of
+      {ok, Result} ->
+          {ok, Result};
+      _ ->
+          application:get_env(dog, ec2_macs, {ok, ["notfound"]})
+  end.
 
 -spec ec2_instance_tags() -> {ok, binary()} | {error, term()}.
 ec2_instance_tags() ->
@@ -330,7 +339,7 @@ ec2_instance_tags() ->
           TagNames = re:split(Tags, "\n", [{return, list},trim]),
           TagNamesStrings = [list_to_binary(Tn) || Tn <- TagNames],
           Results = lists:map(fun(Tag) ->
-                                  ec2_instance_tag(Tag)
+                                      {Tag, ec2_instance_tag(Tag)}
                               end, TagNamesStrings),
           Results@1 = lists:filter(fun({_Key, Value}) ->
                                            Value =/= notfound
@@ -348,8 +357,8 @@ get_ec2_instance_tags() ->
 -spec ec2_instance_tag(Tag :: iolist()) -> string().
 ec2_instance_tag(Tag) ->
   Uri = "tags/instance/" ++ Tag,
-  Value = get_ec2_metadata(Uri),
-  {Tag, Value}.
+  {_,Value} = get_ec2_metadata(Uri),
+  Value.
 
 -spec get_interfaces_with_ips() -> {'ok',[{_,_}]}.
 get_interfaces_with_ips() ->
