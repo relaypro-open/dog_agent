@@ -22,8 +22,9 @@ handle(Req, _Args) ->
 
 
 handle('GET', RequestList, _Req) ->
+    ChanceOf404 = application:get_env(ec2_mock, chance_of_404, 0.0),
     case rand:uniform() of
-        Rand when Rand > 0 -> % set to > N to simulate random 404s
+        Rand when Rand > ChanceOf404 -> % set to > N to simulate random 404s
             try serve_metadata(RequestList) of
                 Response ->  Response
             catch

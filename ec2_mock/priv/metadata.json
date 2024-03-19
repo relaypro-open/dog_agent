@@ -1,156 +1,88 @@
 {
-    "meta-data": {
-        "identity-credentials": {
-            "ec2": {
-                "info": [
-                    "{", 
-                        "  \"Code\" : \"Success\",", 
-                        "  \"LastUpdated\" : \"2022-02-16T15:08:16Z\",", 
-                        "  \"AccountId\" : \"123456789012\"", 
-                        "}"
-                ]
-            }
-        }, 
-        "instance-type": "m5.large"
-        , 
-        "instance-id": 
-        "i-1234567890abcdefg"
-        , 
-        "placement": {
-            "region": 
-            "us-east-1"
-            , 
-            "availability-zone": 
-            "us-east-1e"
-            , 
-            "availability-zone-id": 
-            "use1-az2"
-
-        }, 
-        "local-hostname": 
-        "ip-10-1-12-80.test.info"
-        , 
-        "hibernation": {
-            "configured": 
-            "false"
-
-        }, 
-        "hostname": 
-        "ip-10-1-12-80.test.info"
-        , 
-        "ami-id": 
-        "ami-123abc234bcd345cde0"
-        , 
-        "instance-action": 
-        "none"
-        , 
-        "profile":
-        "default-hvm"
-        , 
-        "network": {
-            "interfaces": {
-                "macs": {
-                    "13:4e:94:b2:4b:fa": {
-                        "local-hostname": 
-                        "ip-10-1-12-80.test.info"
-                        , 
-                        "security-groups": 
-                        "db-qa-aws"
-                        , 
-                        "vpc-ipv4-cidr-blocks": 
-                        "10.1.0.0/16"
-                        , 
-                        "subnet-id": 
-                        "subnet-5f518973"
-                        , 
-                        "vpc-ipv4-cidr-block": 
-                        "10.1.0.0/16"
-                        , 
-                        "interface-id": 
-                        "eni-abc1def2ghi3jkl40"
-                        , 
-                        "mac": 
-                        "13:4e:94:b2:4b:fa"
-                        , 
-                        "security-group-ids": 
-                        "sg-1abc2def3ghi4jkl0"
-                        , 
-                        "local-ipv4s": 
-                        "10.1.12.80"
-                        , 
-                        "owner-id": 
-                        "123456789012"
-                        , 
-                        "subnet-ipv4-cidr-block": 
-                        "10.1.12.0/24"
-                        , 
-                        "device-number": 
-                        "0"
-                        , 
-                        "vpc-id": 
-                        "vpc-1a2b3c4d"
-
-                    }
-                }
-            }
-        }, 
-        "reservation-id": 
-        "r-0f2ff8ed583e43773"
-        , 
-        "security-groups": 
-        "db-qa-aws"
-        , 
-        "instance-life-cycle": 
-        "on-demand"
-        , 
-        "mac": 
-        "13:4e:94:b2:4b:fa"
-        , 
-        "block-device-mapping": {
-            "ami": 
-            "sda1"
-            , 
-            "root": 
-            "/dev/sda1"
-            , 
-            "ephemeral1": 
-            "sdc"
-            , 
-            "ephemeral0": 
-            "sdb"
-
-        }, 
-        "services": {
-            "domain": 
-            "amazonaws.com"
-            , 
-            "partition": 
-            "aws"
-
-        }, 
-        "ami-manifest-path": 
-        "(unknown)"
-        , 
-        "events": {
-            "maintenance": {
-                "scheduled": 
-                "[]"
-                , 
-                "history": 
-                "[]"
-
-            }
-        }, 
-        "local-ipv4": 
-        "10.1.12.80"
-        , 
-        "metrics": {
-            "vhostmd": 
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-
-        }, 
-        "ami-launch-index": 
-        "0"
-
-    }
+  "meta-data": {
+    "identity-credentials": {
+      "ec2": {
+        "info": [
+          "{",
+          "  \"Code\" : \"Success\",",
+          "  \"LastUpdated\" : \"2022-02-16T15:08:16Z\",",
+          "  \"AccountId\" : \"123456789012\"",
+          "}"
+        ]
+      }
+    },
+    "instance-type": "m5.large",
+    "instance-id": "i-1234567890abcdefg",
+    "placement": {
+      "region": "us-east-1",
+      "availability-zone": "us-east-1e",
+      "availability-zone-id": "use1-az2"
+    },
+    "local-hostname": "ip-10-1-12-80.test.info",
+    "hibernation": {
+      "configured": "false"
+    },
+    "hostname": "ip-10-1-12-80.test.info",
+    "ami-id": "ami-123abc234bcd345cde0",
+    "instance-action": "none",
+    "profile": "default-hvm",
+    "network": {
+      "interfaces": {
+        "macs": {
+          "13:4e:94:b2:4b:fa": {
+            "local-hostname": "ip-10-1-12-80.test.info",
+            "security-groups": "db-qa-aws",
+            "vpc-ipv4-cidr-blocks": "10.1.0.0/16",
+            "subnet-id": "subnet-5f518973",
+            "vpc-ipv4-cidr-block": "10.1.0.0/16",
+            "interface-id": "eni-abc1def2ghi3jkl40",
+            "mac": "13:4e:94:b2:4b:fa",
+            "security-group-ids": "sg-1abc2def3ghi4jkl0",
+            "local-ipv4s": "10.1.12.80",
+            "owner-id": "123456789012",
+            "subnet-ipv4-cidr-block": "10.1.12.0/24",
+            "device-number": "0",
+            "vpc-id": "vpc-1a2b3c4d",
+            "public-ipv4s": "50.1.1.1"
+          }
+        }
+      }
+    },
+    "reservation-id": "r-0f2ff8ed583e43773",
+    "security-groups": "db-qa-aws",
+    "instance-life-cycle": "on-demand",
+    "mac": "13:4e:94:b2:4b:fa",
+    "block-device-mapping": {
+      "ami": "sda1",
+      "root": "/dev/sda1",
+      "ephemeral1": "sdc",
+      "ephemeral0": "sdb"
+    },
+    "services": {
+      "domain": "amazonaws.com",
+      "partition": "aws"
+    },
+    "tags": {
+      "instance": {
+        "Name": "name",
+        "cluster": "cluster",
+        "env": "env",
+        "environment": "environment",
+        "product": "product",
+        "role": "role"
+      }
+    },
+    "ami-manifest-path": "(unknown)",
+    "events": {
+      "maintenance": {
+        "scheduled": "[]",
+        "history": "[]"
+      }
+    },
+    "local-ipv4": "10.1.12.80",
+    "metrics": {
+      "vhostmd": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+    },
+    "ami-launch-index": "0"
+  }
 }
