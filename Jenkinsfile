@@ -15,7 +15,7 @@ pipeline {
                      defaultValue: false,
                      description: 'Whether or not to deploy this new build to the environment selected below.')
         choice(name: 'branch',
-               choices: ['feature/ansible_connection','master'],
+               choices: ['main','feature/ansible_connection'],
                description: 'The source branch to compile.')
         choice(name: 'env',
                choices: ['mob_qa','mob_pro','beta_qa','stage.qa','api.qa','api.pro'],
