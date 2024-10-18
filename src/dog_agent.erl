@@ -296,6 +296,65 @@ init_state() ->
 		Ec2VpcId, Ec2SubnetId, DockerContainerIds),
     State.
 
+terminate_state() ->
+    Provider = dog_interfaces:get_provider(),
+    {ok, Interfaces} =
+    dog_interfaces:get_interfaces(Provider, []),
+    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, Ec2VpcId, Ec2SubnetId} = dog_interfaces:ec2_info(),
+    {OS_Distribution,OS_Version} = dog_interfaces:os_info(),
+    {ok, Hostname} = dog_interfaces:get_fqdn(),
+    Hash4Ipsets =
+    dog_iptables:create_hash(dog_iptables:read_current_ipv4_ipsets()),
+    Hash6Ipsets =
+    dog_iptables:create_hash(dog_iptables:read_current_ipv6_ipsets()),
+    Hash4Iptables =
+    dog_iptables:create_hash(dog_iptables:read_current_ipv4_iptables()),
+    Hash6Iptables =
+    dog_iptables:create_hash(dog_iptables:read_current_ipv6_iptables()),
+    IpsetHash = dog_ipset:read_hash(),
+    {ok, Version} = dog_app:get_version(),
+    UpdateType = force,
+    {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
+        {ok, ConfigMap} ->
+            ?LOG_DEBUG("ConfigMap: ~p", [ConfigMap]),
+            {
+              maps:get(<<"group">>, ConfigMap),
+              maps:get(<<"location">>, ConfigMap),
+              maps:get(<<"environment">>, ConfigMap),
+              maps:get(<<"hostkey">>, ConfigMap)
+            };
+        file_read_error ->
+            {
+            <<"">>,
+            <<"*">>,
+            <<"*">>,
+            <<"">>
+            }
+    end,
+    Hostkey1 = case Hostkey of
+      <<>> ->
+        throw("hostkey_not_set");
+      _ ->
+        Hostkey
+    end,
+    ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
+    DockerContainerIds = [],
+    State = dog_state:dog_state(Group, Hostname,
+                Location, Environment,
+                Hostkey1, Interfaces, Version,
+                Hash4Ipsets, Hash6Ipsets,
+                Hash4Iptables, Hash6Iptables,
+                Provider, UpdateType,
+                IpsetHash,
+		Ec2Region,
+		Ec2InstanceId,
+	        Ec2AvailabilityZone,
+	        Ec2SecurityGroupIds,
+	        Ec2OwnerId,Ec2InstanceTags,
+		OS_Distribution,OS_Version,
+		Ec2VpcId, Ec2SubnetId, DockerContainerIds),
+    State.
+
 start_docker_watch() ->
     case dog_docker:is_docker_instance() of
       true ->
@@ -443,9 +502,17 @@ handle_info(Info, State) ->
 %%----------------------------------------------------------------------
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
-terminate(Reason, State) ->
+terminate(Reason, _State) ->
+    %TODO: Send disconnect to dog_trainer, so agent will immediately go to 'inactive'
+    TerminateState = terminate_state(),
+    ?LOG_DEBUG("TerminateState: ~p", [TerminateState]),
+    TerminateStateMap = dog_state:to_map(TerminateState),
+    TerminateStateMap1 = maps:merge(TerminateStateMap, #{<<"active">> => <<"inactive">>}),
+    ?LOG_DEBUG("TerminateStateMap1: ~p~n", [TerminateStateMap1]),
+    ?LOG_DEBUG("force update"),
+    dog_interfaces:publish_to_queue(TerminateStateMap1), %force update
     ?LOG_INFO("terminate: Reason: ~p, State: ~p",
-           [Reason, State]),
+           [Reason, TerminateStateMap1]),
     {close}.
 
 -spec code_change(_, State :: dog_state:dog_state(),
