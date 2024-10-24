@@ -90,8 +90,8 @@ pipeline {
                                 config/make_dog_start.sh
                                 sed -i "s/.* %% relflow-release-version-marker/\\"$dog_env-$BUILD_ID\\" %% relflow-release-version-marker/g" rebar.config
                                 sed -i "s/NOT_SET/$dog_env-$BUILD_ID/"g config/sys.config.etc
-                                rm -f rebar3
-                                wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
+#rm -f rebar3
+#wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
                                 ./rebar3 as \$dog_env tar
                                 mv _build/*/rel/dog/dog-\$dog_env-\$BUILD_ID.tar.gz \$dog_env-\$BUILD_ID.\$build_suffix.tar.gz
                                 """
