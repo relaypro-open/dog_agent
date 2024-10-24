@@ -16,7 +16,7 @@ init(_Args) ->
          period => 60},
     ChildSpecs = [
           #{id => dog_signal_handler, 
-            start => {dog_signal_handler, start_link, dog_signal_handler_opts()},
+            start => {dog_signal_handler, start_link, []},
             restart => permanent, shutdown => 5000, type => worker,
             modules => [dog_signal_handler]},
           #{id => dog_turtle_sup,
