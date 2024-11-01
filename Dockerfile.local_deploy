@@ -42,7 +42,6 @@ FROM base as deploy
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
 RUN mkdir -p /etc/iptables
-#COPY config/sys.config.local_docker /etc/dog/dog.config
 COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application
@@ -70,6 +69,12 @@ FROM scratch AS tar
 COPY --from=deploy /tmp/dog_agent.tar.gz / 
 
 FROM deploy as run 
-CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
+#CMD /bin/bash -c "sed -i 's/hostname/`hostname`/g' /etc/dog/config.json" && /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
 #CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "sleep infinity"
+ARG CERT_SOURCE=none
+ENV CERT_SOURCE=$CERT_SOURCE
+RUN echo ${CERT_SOURCE}
+COPY scripts scripts/
+RUN chmod u+x scripts/entrypoint.sh
+ENTRYPOINT [ "scripts/entrypoint.sh" ]
 
