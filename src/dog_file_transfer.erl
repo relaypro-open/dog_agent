@@ -36,7 +36,7 @@
 %% ------------------------------------------------------------------
 subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
     Message = binary_to_term(Payload),
-    ?LOG_DEBUG("Message: ~p",[Message]),
+    %?LOG_DEBUG("Message: ~p",[Message]),
     ApiUser = proplists:get_value(api_user, Message, "undefined"),
     case ApiUser of
         "undefined" ->
@@ -128,8 +128,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                 FileCurrentBlock = proplists:get_value(current_block, Message),
                 MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
                 FileBlock = maps:get(file_block, UserData),
-                ?LOG_DEBUG(#{ filepath => FilePath}),
-                ?LOG_DEBUG(#{ filename => Filename, maxblocksizebytes => MaxBlockSizeBytes, file_currenp_block => FileCurrentBlock,file_total_blocks => FileTotalBlocks}),
+                ?LOG_DEBUG(#{ filepath => FilePath, filename => Filename, maxblocksizebytes => MaxBlockSizeBytes, file_currenp_block => FileCurrentBlock,file_total_blocks => FileTotalBlocks}),
                 %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
                 {ok,IoDevice} = case FileCurrentBlock of
                                     1 ->
@@ -142,11 +141,13 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                 case FileCurrentBlock of
                     1 when FileTotalBlocks =:= 1 ->
                         file:pwrite(IoDevice,0,FileBlock),
+                        file:sync(IoDevice),
                         file:close(IoDevice),
                         {ack,State};
                     %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                     1 when FileTotalBlocks > 1 ->
                         file:pwrite(IoDevice,0,FileBlock),
+                        file:sync(IoDevice),
                         %{reply, <<"text/json">>, jsx:encode(block_ok), State};
                         {ack,State};
                     N when N >=  FileTotalBlocks ->
@@ -154,6 +155,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                         StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
                         ?LOG_DEBUG(#{start_byte => StartByte}),
                         file:pwrite(IoDevice,StartByte,FileBlock),
+                        file:sync(IoDevice),
                         file:close(IoDevice),
                         {ack,State};
                     %{reply, <<"text/json">>, jsx:encode(block_ok), State};
