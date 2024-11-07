@@ -47,7 +47,9 @@ pipeline {
                 axes {
                     axis {
                         name 'DOCKER_IMAGE'
-                            values 'relaypro/erlang-focal:master-latest', 'relaypro/erlang-xenial:master-latest'
+                            values 'relaypro/erlang-focal:master-latest',
+                            'relaypro/erlang-xenial:master-latest',
+                            'relaypro/elixir-14-2-erlang-25-noble:latest'
                     }
                 }
 
@@ -76,6 +78,8 @@ pipeline {
                                     build_suffix='ubuntu'
                                 elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-focal:master-latest' ]]; then    
                                     build_suffix='ubuntu-20-04'
+                                elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-noble:master-latest' ]]; then    
+                                    build_suffix='ubuntu-24-04
                                 fi
                                 
                                 ls /opt/kerl/lib

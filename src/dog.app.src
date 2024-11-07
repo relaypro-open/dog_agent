@@ -17,12 +17,10 @@
 		base16,
 		quickrand,
 		uuid,
-		erldocker,
 		bbmustache,
 		jsn,
 		erldocker,
 		turtle,
-		erlexec,
         erlcloud
 	]},
 	{included_applications, []},
