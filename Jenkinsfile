@@ -79,7 +79,7 @@ pipeline {
                                 elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-focal:master-latest' ]]; then    
                                     build_suffix='ubuntu-20-04'
                                 elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-noble:master-latest' ]]; then    
-                                    build_suffix='ubuntu-24-04
+                                    build_suffix='ubuntu-24-04'
                                 fi
                                 
                                 ls /opt/kerl/lib
