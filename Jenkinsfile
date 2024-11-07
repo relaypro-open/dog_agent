@@ -30,7 +30,7 @@ pipeline {
                defaultValue: '--tags upgrade',
                description: 'ansible flags')
         choice(name: 'erlang_version',
-               choices: ['24.3.4.2','23.3.4.3'],
+               choices: ['25.3.2.12','24.3.4.2','23.3.4.3'],
                description: 'The erlang_version dog_agent_ex will be built with')
         choice(name: 'release_path',
                choices: ['deployable/rel/dog_agent/','test/rel/dog_agent/'],
