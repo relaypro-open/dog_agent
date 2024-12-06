@@ -49,6 +49,7 @@ pipeline {
                         name 'DOCKER_IMAGE'
                             values 'relaypro/erlang-focal:master-latest',
                             'relaypro/erlang-xenial:master-latest',
+                            'relaypro/erlang-jammy:master-latest',
                             'relaypro/erlang-noble:master-latest'
                     }
                 }
@@ -78,6 +79,8 @@ pipeline {
                                     build_suffix='ubuntu'
                                 elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-focal:master-latest' ]]; then    
                                     build_suffix='ubuntu-20-04'
+                                elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-jammy:master-latest' ]]; then    
+                                    build_suffix='ubuntu-22-04'
                                 elif [[ \$DOCKER_IMAGE == 'relaypro/erlang-noble:master-latest' ]]; then    
                                     build_suffix='ubuntu-24-04'
                                 fi
