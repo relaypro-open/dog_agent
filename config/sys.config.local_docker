@@ -6,7 +6,7 @@
 	{cmd_user, "root"}
     ]},
     {kernel,[
-     {inet_dist_use_interface,{127,0,0,1}},
+     %{inet_dist_use_interface,{127,0,0,1}},
       {logger_level, all},
       {logger, [
   
@@ -66,9 +66,9 @@
                                {cacertfile, "/etc/dog/certs/ca.crt"},
                                {certfile,   "/etc/dog/certs/server.crt"},
                                {keyfile,    "/etc/dog/private/server.key"},
-                               {verify, verify_peer},
-                               {server_name_indication, disable},
-                               {fail_if_no_peer_cert, true}
+                               {verify, verify_none}, %TODO
+                               {server_name_indication, disable}, %TODO
+                               {fail_if_no_peer_cert, false} %TODO
                               ],
                 deadline => 300000,
                 connections => [
@@ -91,5 +91,13 @@
 	    %{alarm, 5},  %% sec deadline for the port program to clean up child pids
 	    {user, "root"},
 	    {limit_users, ["root"]}
-  ]}
+  ]},
+ {sync, [
+         {growl, none},
+         {log, [warnings, errors]},
+         {non_descendants, fix},
+         {executable, auto},
+         {whitelisted_modules, []},
+         {excluded_modules, []}
+        ]}
 ].

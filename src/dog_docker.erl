@@ -326,8 +326,12 @@ nets() ->
                              end,
                       Ipam = maps:from_list(maps:get(<<"IPAM">>, NetworkMap)),
                       Config = maps:get(<<"Config">>, Ipam),
+                      ?LOG_DEBUG("Config: ~p~n",[Config]),
                       case Config of
                           [] ->
+                           Subnet = [],
+                           Gateway = [];
+                          null ->
                            Subnet = [],
                            Gateway = [];
                           _ ->
