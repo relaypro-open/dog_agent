@@ -1,5 +1,5 @@
-#Build stage 0
-FROM erlang:24 as base
+#Build stage 0.1
+FROM erlang:26 as base
 
 ENV DOG_AGENT_VERSION=local_docker
 ENV DOG_AGENT_BROKER_USERNAME=guest
@@ -11,7 +11,7 @@ ENV DOG_AGENT_CACERTFILE=/etc/dog/certs/ca.crt
 ENV DOG_AGENT_CERTFILE=/etc/dog/certs/server.crt
 ENV DOG_AGENT_KEYFILE=/etc/dog/private/server.key
 
-RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils netcat
+RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils ncat
 
 #Set working directory
 RUN mkdir /data
@@ -19,23 +19,22 @@ WORKDIR /data
 COPY rebar.config rebar.config
 COPY rebar.lock .
 COPY rebar3 .
-RUN ./rebar3 deps
-RUN ./rebar3 compile
+RUN ./rebar3 as local_deploy get-deps
+RUN ./rebar3 as local_deploy compile
 
 FROM base as compile
 
 WORKDIR /data
-COPY . .
+COPY *.sh .
+COPY src src
+COPY include include
 COPY --from=base /data/_build .
-#COPY config/sys.config.etc config/sys.config
-#RUN rm config/sys.config
 COPY config/sys.config.src config/sys.config.src
-#RUN sed -i 's/NOT_SET/local_docker/g' config/sys.config
 
 RUN ./rebar3 --version
 
 #Build the release
-RUN ./rebar3 release as local_docker
+RUN ./rebar3 as local_docker release 
 
 FROM base as deploy
 
@@ -45,7 +44,7 @@ RUN mkdir -p /etc/iptables
 COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application
-COPY --from=compile /data/_build/default/rel/dog /opt/dog
+COPY --from=compile /data/_build/local_docker/rel/dog /opt/dog
 RUN ls /opt/dog/lib
 RUN chmod 4555 /opt/dog/lib/erlexec-*/priv/x86_64-pc-linux-gnu/exec-port
 RUN mkdir -p /home/dog/bin
@@ -77,4 +76,3 @@ RUN echo ${CERT_SOURCE}
 COPY scripts scripts/
 RUN chmod u+x scripts/entrypoint.sh
 ENTRYPOINT [ "scripts/entrypoint.sh" ]
-
