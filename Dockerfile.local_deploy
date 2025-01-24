@@ -1,5 +1,5 @@
 #Build stage 0.1
-FROM erlang:26 as base
+FROM erlang:24 as base
 
 ENV DOG_AGENT_VERSION=local_docker
 ENV DOG_AGENT_BROKER_USERNAME=guest
