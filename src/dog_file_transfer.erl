@@ -28,13 +28,17 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 -export([
-         subscriber_loop/4
+         subscriber_loop/4,
+         fetch_file/3,
+         delete_file/3,
+         send_file/5,
+         execute_command/3
         ]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
-subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
+subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     Message = binary_to_term(Payload),
     ?LOG_DEBUG("Message: ~p",[Message]),
     ApiUser = proplists:get_value(api_user, Message, "undefined"),
@@ -72,7 +76,7 @@ fetch_file(State,ApiUser,Filename) ->
     of
         Reply -> Reply
     catch %TODO: replace with 'after'
-        Exception:Reason:Stacktrace -> 
+        Exception:Reason:Stacktrace ->
             ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
             {reply, <<"text/json">>, jsx:encode([Reason]), State}
     end.
@@ -108,7 +112,7 @@ delete_file(State,ApiUser,Filename) ->
     of
         Reply -> Reply
     catch %TODO: replace with 'after'
-        Exception:Reason:Stacktrace -> 
+        Exception:Reason:Stacktrace ->
             ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
             {reply, <<"text/json">>, jsx:encode([Reason]), State}
     end.
@@ -164,12 +168,12 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                         file:pwrite(IoDevice,StartByte,FileBlock),
                         {ack,State}
                         %{reply, <<"text/json">>, jsx:encode(file_ok), State}
-                end 
-        end                                                                           
+                end
+        end
     of
         {ack, NewState} -> {ack,NewState}
     catch %TODO: replace with 'after'
-        Exception:Reason:Stacktrace -> 
+        Exception:Reason:Stacktrace ->
             ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
             {ack, Reason}
     end.
@@ -180,12 +184,12 @@ execute_command(State, ApiUser, Message) ->
     ?LOG_DEBUG(#{execute_command_raw => ExecuteCommandRaw}),
     UseShell = proplists:get_value(use_shell, Message, false),
     CmdUser = application:get_env(dog, cmd_user, "dog"),
-    ExecuteCommand = case UseShell of                                          
-                         true ->                                                 
-                             ExecuteCommandRaw;      
-                         false ->                                                
+    ExecuteCommand = case UseShell of
+                         true ->
+                             ExecuteCommandRaw;
+                         false ->
                              string:split(ExecuteCommandRaw," ")
-                     end,                                                    
+                     end,
     ?LOG_INFO(#{api_user => ApiUser, cmd_user => CmdUser, execute_command => ExecuteCommand}),
     try
         Result = exec:run(ExecuteCommand, [sync, stdout, stderr, {user, CmdUser}]),
@@ -221,7 +225,7 @@ execute_command(State, ApiUser, Message) ->
         end
     after
         {reply, <<"text/json">>, {error, <<"exec error">>}, State}
-    end.		
+    end.
 
 -spec start_link(Link :: map()) ->
     {ok, Pid :: pid()} | ignore | {error, {already_started, Pid :: pid()} | term()}.

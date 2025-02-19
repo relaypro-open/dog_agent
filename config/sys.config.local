@@ -6,7 +6,7 @@
 	{cmd_user, "dog"}
     ]},
     {kernel,[
-     {inet_dist_use_interface,{127,0,0,1}},
+     %{inet_dist_use_interface,{127,0,0,1}},
       {logger_level, all},
       {logger, [
 
