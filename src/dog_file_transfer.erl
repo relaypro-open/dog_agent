@@ -207,10 +207,10 @@ execute_command(State, ApiUser, Message) ->
                         {reply, <<"text/json">>, jsx:encode([{ok, StdOut}]), State}
                 end;
             {ok,[{stdout,StdOut},{stderr,StdErr}]} ->
-                %StdCombined = [StdOut,StdErr],
-                %ParsedStdCombined = [erlang:iolist_to_binary(StdCombined)],
-                %?LOG_INFO(#{parsed_stdout => ParsedStdCombined}),
-                {reply, <<"text/json">>, jsx:encode({ok, #{stderr => StdErr, stdout => StdOut}}), State};
+                StdCombined = [StdOut,StdErr],
+                ParsedStdCombined = [erlang:iolist_to_binary(StdCombined)],
+                ?LOG_INFO(#{parsed_stdout => ParsedStdCombined}),
+                {reply, <<"text/json">>, jsx:encode([{ok, ParsedStdCombined}]), State};
             {ok,[]} ->
                 {reply, <<"text/json">>, jsx:encode([{ok, []}]), State};
             {error,[{exit_status,_ExitStatus},{stdout,StdOut}]} ->
