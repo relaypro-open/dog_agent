@@ -114,67 +114,67 @@ delete_file(State,ApiUser,Filename) ->
     end.
 
 send_file(State, ApiUser, Message, Filename, UserData) ->
-    timer:sleep(10000),
-    {ack, test_timeout}.
-    %try
-    %    ?LOG_DEBUG("send_file"),
-    %    FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
-    %    FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
-    %    ?LOG_INFO(#{ apiuser => ApiUser, filepath => FilePath}),
-    %    case FilenameClean of
-    %        unsafe ->
-    %            ?LOG_DEBUG("Unsafe FilePath"),
-    %            {reply, <<"text/json">>, jsx:encode(file_bad), State};
-    %        _ ->
-    %            FileTotalBlocks = proplists:get_value(total_blocks, Message),
-    %            FileCurrentBlock = proplists:get_value(current_block, Message),
-    %            MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
-    %            FileBlock = maps:get(file_block, UserData),
-    %            ?LOG_DEBUG(#{ filepath => FilePath}),
-    %            ?LOG_DEBUG(#{ filename => Filename, maxblocksizebytes => MaxBlockSizeBytes, file_currenp_block => FileCurrentBlock,file_total_blocks => FileTotalBlocks}),
-    %            %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
-    %            {ok,IoDevice} = case FileCurrentBlock of
-    %                                1 ->
-    %                                    filelib:ensure_dir(filename:dirname(FilePath) ++ "/"),
-    %                                    file:open(FilePath,[write,raw]);
-    %                                _ ->
-    %                                    %file:open(FilePath,[append,raw])
-    %                                    file:open(FilePath,[write,read,raw])
-    %                            end,
-    %            case FileCurrentBlock of
-    %                1 when FileTotalBlocks =:= 1 ->
-    %                    file:pwrite(IoDevice,0,FileBlock),
-    %                    file:close(IoDevice),
-    %                    {ack,State};
-    %                %{reply, <<"text/json">>, jsx:encode(block_ok), State};
-    %                1 when FileTotalBlocks > 1 ->
-    %                    file:pwrite(IoDevice,0,FileBlock),
-    %                    %{reply, <<"text/json">>, jsx:encode(block_ok), State};
-    %                    {ack,State};
-    %                N when N >=  FileTotalBlocks ->
-    %                    %file:write(IoDevice,FileBlock),
-    %                    StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-    %                    ?LOG_DEBUG(#{start_byte => StartByte}),
-    %                    file:pwrite(IoDevice,StartByte,FileBlock),
-    %                    file:close(IoDevice),
-    %                    {ack,State};
-    %                %{reply, <<"text/json">>, jsx:encode(block_ok), State};
-    %                _ ->
-    %                    %file:write(IoDevice,FileBlock),
-    %                    StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
-    %                    ?LOG_DEBUG(#{start_byte => StartByte}),
-    %                    file:pwrite(IoDevice,StartByte,FileBlock),
-    %                    {ack,State}
-    %                    %{reply, <<"text/json">>, jsx:encode(file_ok), State}
-    %            end
-    %    end
-    %of
-    %    {ack, NewState} -> {ack,NewState}
-    %catch %TODO: replace with 'after'
-    %    Exception:Reason:Stacktrace ->
-    %        ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
-    %        {ack, Reason}
-    %end.
+    %timer:sleep(10000),
+    %{ack, test_timeout}.
+    try
+        ?LOG_DEBUG("send_file"),
+        FilenameClean = filelib:safe_relative_path(string:trim(Filename,leading,"/"),[]),
+        FilePath = ?SANDBOX_FILE_ROOT ++ FilenameClean,
+        ?LOG_INFO(#{ apiuser => ApiUser, filepath => FilePath}),
+        case FilenameClean of
+            unsafe ->
+                ?LOG_DEBUG("Unsafe FilePath"),
+                {reply, <<"text/json">>, jsx:encode(file_bad), State};
+            _ ->
+                FileTotalBlocks = proplists:get_value(total_blocks, Message),
+                FileCurrentBlock = proplists:get_value(current_block, Message),
+                MaxBlockSizeBytes = proplists:get_value(max_block_size_bytes, Message),
+                FileBlock = maps:get(file_block, UserData),
+                ?LOG_DEBUG(#{ filepath => FilePath}),
+                ?LOG_DEBUG(#{ filename => Filename, maxblocksizebytes => MaxBlockSizeBytes, file_currenp_block => FileCurrentBlock,file_total_blocks => FileTotalBlocks}),
+                %{ok,IoDevice} = file:open(FilePath,[write,binary,read_ahead,raw]),
+                {ok,IoDevice} = case FileCurrentBlock of
+                                    1 ->
+                                        ok = filelib:ensure_dir(filename:dirname(FilePath) ++ "/"),
+                                        {ok, _IODevice} = file:open(FilePath,[write,raw]);
+                                    _ ->
+                                        %file:open(FilePath,[append,raw])
+                                        {ok, _IODevice} = file:open(FilePath,[write,read,raw])
+                                end,
+                case FileCurrentBlock of
+                    1 when FileTotalBlocks =:= 1 ->
+                        ok = file:pwrite(IoDevice,0,FileBlock),
+                        ok = file:close(IoDevice),
+                        {ack,State};
+                    %{reply, <<"text/json">>, jsx:encode(block_ok), State};
+                    1 when FileTotalBlocks > 1 ->
+                        ok = file:pwrite(IoDevice,0,FileBlock),
+                        %{reply, <<"text/json">>, jsx:encode(block_ok), State};
+                        {ack,State};
+                    N when N >=  FileTotalBlocks ->
+                        %file:write(IoDevice,FileBlock),
+                        StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
+                        ?LOG_DEBUG(#{start_byte => StartByte}),
+                        ok = file:pwrite(IoDevice,StartByte,FileBlock),
+                        ok = file:close(IoDevice),
+                        {ack,State};
+                    %{reply, <<"text/json">>, jsx:encode(block_ok), State};
+                    _ ->
+                        %file:write(IoDevice,FileBlock),
+                        StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
+                        ?LOG_DEBUG(#{start_byte => StartByte}),
+                        ok = file:pwrite(IoDevice,StartByte,FileBlock),
+                        {ack,State}
+                        %{reply, <<"text/json">>, jsx:encode(file_ok), State}
+                end
+        end
+    of
+        {ack, NewState} -> {ack,NewState}
+    catch %TODO: replace with 'after'
+        Exception:Reason:Stacktrace ->
+            ?LOG_ERROR(#{ exception => Exception, reason => Reason, stacktrace => Stacktrace}),
+            {ack, Reason}
+    end.
 
 execute_command(State, ApiUser, Message) ->
     ExecuteCommandBase64 = proplists:get_value(execute_command, Message),
