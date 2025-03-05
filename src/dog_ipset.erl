@@ -29,6 +29,7 @@ write_temp_file(IpsetConf) ->
     {ok, TmpFile} = file:open((?RUNDIR) ++ "/ipset.txt",
                   [write]),
     Result = file:write(TmpFile, IpsetConf),
+    file:sync(TmpFile),
     file:close(TmpFile),
     case Result of
       ok -> ?LOG_INFO("wrote ipset.txt"), ok;
@@ -52,11 +53,11 @@ restore_ipset(ErrorCount) ->
   Result = dog_os:cmd(RestoreCmd),
   timer:sleep(IpsetRestoreWaitSeconds * 1000),
   case Result of       % Run a shell command to sleep for 1000s.
-    %dog_ipset:restore_ipset:38 gen_server dog_ipset_agent terminated with reason: no case clause matching {error,[{exit_status,256},{stderr,[<<"ipset v6.29: Error in line 4396: Kernel error received: Device or resource busy n">>]}]} 
+    %dog_ipset:restore_ipset:38 gen_server dog_ipset_agent terminated with reason: no case clause matching {error,[{exit_status,256},{stderr,[<<"ipset v6.29: Error in line 4396: Kernel error received: Device or resource busy n">>]}]}
     [] ->
       ok;
     RestoreError ->
-      ?LOG_ERROR("RestoreError: ~p",[RestoreError]),       
+      ?LOG_ERROR("RestoreError: ~p",[RestoreError]),
       NextErrorCount = ErrorCount + 1,
       case ErrorCount of
         ErrorCount when ErrorCount =< IpsetRestoreRetryLimit ->

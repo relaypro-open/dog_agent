@@ -144,6 +144,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                 case FileCurrentBlock of
                     1 when FileTotalBlocks =:= 1 ->
                         ok = file:pwrite(IoDevice,0,FileBlock),
+                        ok = file:sync(IoDevice),
                         ok = file:close(IoDevice),
                         {ack,State};
                     %{reply, <<"text/json">>, jsx:encode(block_ok), State};
@@ -156,6 +157,7 @@ send_file(State, ApiUser, Message, Filename, UserData) ->
                         StartByte = (FileCurrentBlock - 1) * MaxBlockSizeBytes,
                         ?LOG_DEBUG(#{start_byte => StartByte}),
                         ok = file:pwrite(IoDevice,StartByte,FileBlock),
+                        ok = file:sync(IoDevice),
                         ok = file:close(IoDevice),
                         {ack,State};
                     %{reply, <<"text/json">>, jsx:encode(block_ok), State};
