@@ -1,7 +1,7 @@
 #Build stage 0.1
 FROM docker.io/erlang:24 as base
 
-ENV DOG_AGENT_VERSION=local_docker
+ENV DOG_AGENT_VERSION=container
 ENV DOG_AGENT_BROKER_USERNAME=guest
 ENV DOG_AGENT_BROKER_PASSWORD=guest
 ENV DOG_AGENT_BROKER_VIRTUAL_HOST=dog
@@ -11,7 +11,7 @@ ENV DOG_AGENT_CACERTFILE=/etc/dog/certs/ca.crt
 ENV DOG_AGENT_CERTFILE=/etc/dog/certs/server.crt
 ENV DOG_AGENT_KEYFILE=/etc/dog/private/server.key
 
-RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils ncat
+RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils ncat gettext-base
 
 #Set working directory
 RUN mkdir /data
@@ -19,24 +19,27 @@ WORKDIR /data
 COPY rebar.config rebar.config
 COPY rebar.lock .
 COPY rebar3 .
-RUN ./rebar3 as local_deploy get-deps
-RUN ./rebar3 as local_deploy compile
+RUN ./rebar3 as container get-deps
+RUN ./rebar3 as container compile
 
 FROM base as compile
 
 WORKDIR /data
-COPY *.sh .
+COPY .git .git/
 COPY src src
+COPY --from=base /data/_build _build/
+COPY config config/
+COPY *.sh .
 COPY include include
-COPY --from=base /data/_build .
-COPY config/sys.config.src config/sys.config.src
+COPY scripts scripts/
+COPY config/sys.config.template config/sys.config.template
 
 RUN ./rebar3 --version
 
 #Build the release
-RUN ./rebar3 as local_docker release 
+RUN ./rebar3 as container release
 
-FROM base as deploy
+FROM compile as deploy
 
 RUN mkdir -p /opt/dog
 RUN mkdir -p /etc/dog
@@ -44,7 +47,7 @@ RUN mkdir -p /etc/iptables
 COPY config/config.json.local_docker /etc/dog/config.json
 RUN mkdir -p /var/log/dog
 # Install the released application
-COPY --from=compile /data/_build/local_docker/rel/dog /opt/dog
+COPY --from=compile /data/_build/container/rel/dog /opt/dog
 RUN ls /opt/dog/lib
 RUN chmod 4555 /opt/dog/lib/erlexec-*/priv/x86_64-pc-linux-gnu/exec-port
 RUN mkdir -p /home/dog/bin
@@ -57,7 +60,7 @@ RUN cp /usr/sbin/ip6tables-restore /home/dog/bin/
 RUN ls -latr /opt/dog
 
 RUN mkdir /etc/rabbitmq
-COPY csc_certs.sh /etc/rabbitmq/ 
+COPY csc_certs.sh /etc/rabbitmq/
 
 RUN mkdir -p /etc/dog/certs \
 	&& mkdir -p /etc/dog/private \
@@ -65,9 +68,9 @@ RUN mkdir -p /etc/dog/certs \
 RUN tar czf /tmp/dog_agent.tar.gz /opt/dog
 
 FROM scratch AS tar
-COPY --from=deploy /tmp/dog_agent.tar.gz / 
+COPY --from=deploy /tmp/dog_agent.tar.gz /
 
-FROM deploy as run 
+FROM deploy as run
 #CMD /bin/bash -c "sed -i 's/hostname/`hostname`/g' /etc/dog/config.json" && /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "/opt/dog/bin/dog foreground"
 #CMD /bin/bash -c "/etc/rabbitmq/csc_certs.sh" && /bin/bash -c "sleep infinity"
 ARG CERT_SOURCE=none
