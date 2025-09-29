@@ -115,10 +115,10 @@ do_watch_interfaces(StateOld) ->
               [HostnameOld, InterfacesOld]),
       ?LOG_DEBUG("Hostname, Interfaces: ~p, ~p",
               [Hostname, InterfacesNew]),
-      ?LOG_DEBUG("StateNew: ~p", [StateNew]);
-      %StateMap = dog_state:to_map(StateNew);
-      %dog_interfaces:publish_to_queue(StateMap);
-      true -> 
+      ?LOG_DEBUG("StateNew: ~p", [StateNew]),
+      StateMap = dog_state:to_map(StateNew),
+      dog_interfaces:publish_to_queue(StateMap);
+      true ->
             ok
     end,
     {ok, StateNew}.
