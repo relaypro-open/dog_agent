@@ -11,7 +11,7 @@ ENV DOG_AGENT_CACERTFILE=/etc/dog/certs/ca.crt
 ENV DOG_AGENT_CERTFILE=/etc/dog/certs/server.crt
 ENV DOG_AGENT_KEYFILE=/etc/dog/private/server.key
 
-RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils ncat gettext-base
+RUN apt-get update &&  apt-get install -y libcap-dev iptables ipset less ack lsb-release vim jq curl dnsutils ncat gettext-base iproute2
 
 #Set working directory
 RUN mkdir /data
