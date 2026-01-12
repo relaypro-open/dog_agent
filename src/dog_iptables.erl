@@ -160,7 +160,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           DockerIptablesFile = (?RUNDIR) ++ "/iptables-docker.txt",
           ConcatCmd = "cat " ++ DockerTrainerFilterFile ++ " " ++ DockerFilterFile ++ " " ++ DockerNatFile ++ " > " ++ DockerIptablesFile,
           dog_os:cmd(ConcatCmd),
-          Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile, 
+          Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile,
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
@@ -173,7 +173,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
         false ->
           RemoveNatFile = "/etc/dog/rm-nat.txt",
           file:write_file(RemoveNatFile,rm_nat()),
-          Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND, 
+          Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND,
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
@@ -338,7 +338,7 @@ update_iptables4(Ruleset) ->
 update_iptables4(Ruleset, Retry) ->
     IptablesRestoreRetryLimit = application:get_env(dog,
                             iptables_restore_retry_limit,
-                            5),
+                            60),
     IptablesRestoreRetryWaitSeconds =
     application:get_env(dog,
                 iptables_restore_retry_wait_seconds, 3),
@@ -405,7 +405,7 @@ update_iptables6(Ruleset, Retry) ->
       end
     end.
 
-subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
+subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     ?LOG_DEBUG("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
     ?LOG_DEBUG("Proplist: ~p", [Proplist]),
@@ -420,16 +420,16 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     R6IptablesRuleset = maps:get(ruleset6_iptables,
                  UserData, false),
     Ipsets = maps:get(ipsets, UserData, false),
-    handle_callback(Ipsets, R4IpsetsRuleset,    
+    handle_callback(Ipsets, R4IpsetsRuleset,
                     R6IpsetsRuleset, R4IptablesRuleset,
                           R6IptablesRuleset),
     {ack, State }.
 
-recreate_ruleset() -> 
+recreate_ruleset() ->
     R4IpsetsRulesetFile  = (?RUNDIR) ++ "/iptables.txt",
     apply_ipv4_ruleset(R4IpsetsRulesetFile).
 
-handle_callback(Ipsets, R4IpsetsRuleset,    
+handle_callback(Ipsets, R4IpsetsRuleset,
                     R6IpsetsRuleset, R4IptablesRuleset,
                           R6IptablesRuleset) ->
     case Ipsets of
