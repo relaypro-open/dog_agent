@@ -13,8 +13,8 @@
 %% ------------------------------------------------------------------
 
 -export([
-     keepalive/0, 
-     start_link/0,  
+     keepalive/0,
+     start_link/0,
      watch_docker/0,
      watch_interfaces/0,
      watch_iptables/0,
@@ -32,7 +32,7 @@
          get_location/0,
          get_state/0,
          group_routing_key/0,
-         host_routing_key/0, 
+         host_routing_key/0,
          set_environment/1,
          set_group/1,
          set_hostkey/1,
@@ -40,7 +40,8 @@
          set_interfaces/1,
          set_location/1,
          set_state/1,
-         watch_config/0
+         watch_config/0,
+         restart_command/0
         ]).
 
 %% ------------------------------------------------------------------
@@ -87,27 +88,27 @@ watch_docker() ->
 -spec read_hash() -> Hash :: list().
 
 read_hash() ->
-  try 
+  try
     gen_server:call(?MODULE, read_hash, 20000)
-  catch 
-    Class:Reason:Stacktrace -> 
+  catch
+    Class:Reason:Stacktrace ->
       ?LOG_ERROR(
               "~nStacktrace:~s",
               [Stacktrace]),
-      {Class, Reason} 
+      {Class, Reason}
   end.
 
 -spec create_ipsets(Ipsets :: iolist()) -> ok.
 
 create_ipsets(Ipsets) ->
-  try 
+  try
     gen_server:call(?MODULE, {create_ipsets,Ipsets}, 20000)
-  catch 
-    Class:Reason:Stacktrace -> 
+  catch
+    Class:Reason:Stacktrace ->
       ?LOG_ERROR(
               "~nStacktrace:~s",
               [Stacktrace]),
-      {Class, Reason} 
+      {Class, Reason}
   end.
 
 -spec set_state(State :: dog_state:dog_state()) -> {ok,
@@ -202,6 +203,10 @@ group_routing_key() ->
 watch_config() ->
     gen_server:call(?MODULE, watch_config).
 
+-spec restart_command() -> {stop, restart_requested, ok, State :: dog_state:dog_state()}.
+restart_command() ->
+    gen_server:call(?MODULE, restart_command).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -216,10 +221,9 @@ watch_config() ->
 -spec init(term()) -> no_return().
 
 init(_Args) ->
-    WaitSeconds = 15,
-    WaitMilliSeconds = WaitSeconds * 1000,
-    ?LOG_INFO("Waiting ~s seconds for rabbitmq initialization",[WaitSeconds]),
-    timer:sleep(WaitMilliSeconds),
+    StartWaitSeconds = application:get_env(dog, start_wait_seconds, 1),
+    ?LOG_INFO("Waiting ~s seconds for initialization",[StartWaitSeconds]),
+    timer:sleep(StartWaitSeconds * 1000) ,
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
     _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
                   watch_interfaces),
@@ -234,7 +238,6 @@ init(_Args) ->
     ?LOG_DEBUG("force update"),
     dog_interfaces:publish_to_queue(StateMap), %force update
     {ok, State}.
-
 
 init_state() ->
     ok = dog_config:do_init_config(),
@@ -436,8 +439,10 @@ handle_call(group_routing_key, _From, State) ->
     {ok, RoutingKey} = dog_ips:do_get_group_routing_key(State),
     {reply, RoutingKey, State};
 handle_call(watch_config, _From, State) ->
-    dog_config:do_watch_config(), 
+    dog_config:do_watch_config(),
     {reply, State};
+handle_call(restart_command, _From, State) ->
+    {stop, restart_requested, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
