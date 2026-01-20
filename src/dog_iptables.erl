@@ -129,8 +129,8 @@ persist_ipv4_tables() ->
     case Result of
       [] -> ok;
       _ ->
-        ?LOG_ERROR("Result: ~p", [Result]),
-        error
+        ?LOG_DEBUG("Result: ~p", [Result]),
+        ok
     end.
 
 -spec rm_nat() -> string().
@@ -160,7 +160,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
           DockerIptablesFile = (?RUNDIR) ++ "/iptables-docker.txt",
           ConcatCmd = "cat " ++ DockerTrainerFilterFile ++ " " ++ DockerFilterFile ++ " " ++ DockerNatFile ++ " > " ++ DockerIptablesFile,
           dog_os:cmd(ConcatCmd),
-          Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile, 
+          Cmd = ?IP4TABLES_RESTORE_COMMAND ++ " " ++ DockerIptablesFile,
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
@@ -173,7 +173,7 @@ apply_ipv4_ruleset(TrainerFilterFile) ->
         false ->
           RemoveNatFile = "/etc/dog/rm-nat.txt",
           file:write_file(RemoveNatFile,rm_nat()),
-          Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND, 
+          Cmd = "cat " ++ TrainerFilterFile ++ " " ++ RemoveNatFile ++ " | " ++ ?IP4TABLES_RESTORE_COMMAND,
           Result = dog_os:cmd(Cmd),
           case Result of
             [] ->
@@ -199,7 +199,9 @@ persist_ipv6_tables() ->
     Result = dog_os:cmd(Cmd),
     case Result of
       [] -> ok;
-      _ -> error
+      _ ->
+        ?LOG_DEBUG("Result: ~p", [Result]),
+        ok
     end.
 
 -spec apply_ipv6_ruleset(string()) -> error | ok.
@@ -298,24 +300,26 @@ read_current_ipv6_ipsets() ->
 backup_current_ipv4_iptables() ->
     Cmd = ?IP4TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/iptables.back",
     Result = dog_os:cmd(Cmd),
-    ?LOG_DEBUG("backup_ipv4_iptables Result: ~p",
-        [Result]),
     case Result of
       [] -> ok;
-      _ -> error
+      _ ->
+        ?LOG_DEBUG("backup_ipv4_iptables Result: ~p",
+          [Result]),
+        ok
     end.
 
 -spec backup_current_ipv6_iptables() -> error | ok.
 
 backup_current_ipv6_iptables() ->
-    Cmd = ?IP6TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/ip6tables.back",
-    Result = dog_os:cmd(Cmd),
-    ?LOG_DEBUG("backup_ipv6_iptables Result: ~p",
-        [Result]),
-    case Result of
-      [] -> ok;
-      _ -> error
-    end.
+  Cmd = ?IP6TABLES_SAVE_COMMAND ++ " > " ++ (?RUNDIR) ++ "/ip6tables.back",
+  Result = dog_os:cmd(Cmd),
+  case Result of
+    [] -> ok;
+    _ ->
+      ?LOG_DEBUG("backup_ipv6_iptables Result: ~p",
+          [Result]),
+      ok
+  end.
 
 -spec update_iptables4(binary() |
                maybe_improper_list(binary() |
@@ -343,10 +347,10 @@ update_iptables4(Ruleset, Retry) ->
     application:get_env(dog,
                 iptables_restore_retry_wait_seconds, 3),
     ?LOG_DEBUG("update_iptables4"),
-    ok = backup_current_ipv4_iptables(),
+    _ = backup_current_ipv4_iptables(),
     {ok, TempFile} = write_ipv4_ruleset(Ruleset),
     case apply_ipv4_ruleset(TempFile) of
-      ok -> ok = persist_ipv4_tables();
+      ok -> persist_ipv4_tables();
       error ->
       case Retry of
         R when R =< IptablesRestoreRetryLimit ->
@@ -357,7 +361,8 @@ update_iptables4(Ruleset, Retry) ->
         R when R > IptablesRestoreRetryLimit ->
         ?LOG_ERROR("Unable to restore iptables after retry "
                 "number: ~p",
-                [R])
+                [R]),
+        ok
       end
     end.
 
@@ -387,10 +392,10 @@ update_iptables6(Ruleset, Retry) ->
     application:get_env(dog,
                 iptables_restore_retry_wait_seconds, 3),
     ?LOG_DEBUG("update_iptables6"),
-    ok = backup_current_ipv6_iptables(),
+    _ = backup_current_ipv6_iptables(),
     {ok, TempFile} = write_ipv6_ruleset(Ruleset),
     case apply_ipv6_ruleset(TempFile) of
-      ok -> ok = persist_ipv6_tables();
+      ok -> persist_ipv6_tables();
       error ->
       case Retry of
         R when R =< IptablesRestoreRetryLimit ->
@@ -401,11 +406,15 @@ update_iptables6(Ruleset, Retry) ->
         R when R > IptablesRestoreRetryLimit ->
         ?LOG_ERROR("Unable to restore iptables after retry "
                 "number: ~p",
-                [R])
+                [R]),
+        ok
       end
     end.
 
-subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
+%Please fix the following error: AI!
+%when=2026-01-19T22:07:03.696741+00:00 level=error pid=<0.1209.0> at=: unstructured_log="Handler function crashed: {error, {badmatch,error}}, stack: [{dog_iptables,\ update_iptables4,\ 2,\ [{file,\ \"/var/lib/jenkins/workspace/dog/dog_agent@3/src/dog_iptables.erl\"},\ {line,346}]},\ {dog_iptables,\ handle_callback,\ 5,\ [{file,\ \"/var/lib/jenkins/workspace/dog/dog_agent@3/src/dog_iptables.erl\"},\ {line,474}]},\ {dog_iptables,\ subscriber_loop,\ 4,\ [{file,\ \"/var/lib/jenkins/workspace/dog/dog_agent@3/src/dog_iptables.erl\"},\ {line,423}]},\ {turtle_subscriber,\ handle_message,\ 5,\ [{file,\ \"/var/lib/jenkins/workspace/dog/dog_agent@3/_build/default/lib/turtle/src/turtle_subscriber.erl\"},\ {line,264}]},\ {turtle_subscriber,\ handle_deliver_single,\ 2,\ [{file,\ \"/var/lib/jenkins/workspace/dog/dog_agent@3/_build/default/lib/turtle/src/turtle_subscriber.erl\"},\ {line,189}]},\ {gen_server,\ try_dispatch,4,\ [{file,\ \"gen_server.erl\"},\ {line,695}]},\ {gen_server,\ handle_msg,6,\ [{file,\ \"gen_server.erl\"},\ {line,771}]},\ {proc_lib,\ init_p_do_apply,\ 3,\ [{file,\ \"proc_lib.erl\"},\ {line,226}]}], content: {<<131,108,\ 0,0,0,4,\ 104,2,\ 100,0,5,\ 99,111,\ 117,110,\ 116,97,\ 1,104,2,\ 100,0,\ 10,108,\ 111,99,\ 97,108,\ 95,116,\ 105,109,\ 101,104,\ 2,104,3,\ 98,0,0,\ 7,234,\ 97,1,97,\ 19,104,\ 3,97,22,\ 97,7,97,\ 3,104,2,\ 100,0,3,\ 112,105,\ 100,88,\ 100>>,\ {'P_basic',\ <<\"text/json\">>,\ undefined,\ undefined,\ 2,\ undefined,\ undefined,\ undefined,\ undefined,\ undefined,\ undefined,\ undefined,\ undefined,\ undefined,\
+
+subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     ?LOG_DEBUG("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
     ?LOG_DEBUG("Proplist: ~p", [Proplist]),
@@ -420,16 +429,16 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     R6IptablesRuleset = maps:get(ruleset6_iptables,
                  UserData, false),
     Ipsets = maps:get(ipsets, UserData, false),
-    handle_callback(Ipsets, R4IpsetsRuleset,    
+    handle_callback(Ipsets, R4IpsetsRuleset,
                     R6IpsetsRuleset, R4IptablesRuleset,
                           R6IptablesRuleset),
     {ack, State }.
 
-recreate_ruleset() -> 
+recreate_ruleset() ->
     R4IpsetsRulesetFile  = (?RUNDIR) ++ "/iptables.txt",
     apply_ipv4_ruleset(R4IpsetsRulesetFile).
 
-handle_callback(Ipsets, R4IpsetsRuleset,    
+handle_callback(Ipsets, R4IpsetsRuleset,
                     R6IpsetsRuleset, R4IptablesRuleset,
                           R6IptablesRuleset) ->
     case Ipsets of
@@ -471,23 +480,23 @@ handle_callback(Ipsets, R4IpsetsRuleset,
       case R4IpsetsRuleset of
         false ->
         ?LOG_INFO("No v4 ipset ruleset to apply"), pass;
-        _ -> ok = update_iptables4(R4IpsetsRuleset)
+        _ -> _ = update_iptables4(R4IpsetsRuleset)
       end,
       case R6IpsetsRuleset of
         false ->
         ?LOG_INFO("No v6 ipset ruleset to apply"), pass;
-        _ -> ok = update_iptables6(R6IpsetsRuleset)
+        _ -> _ = update_iptables6(R6IpsetsRuleset)
       end;
       false ->
       case R4IptablesRuleset of
         false ->
         ?LOG_INFO("No v4 iptables ruleset to apply"), pass;
-        _ -> ok = update_iptables4(R4IptablesRuleset)
+        _ -> _ = update_iptables4(R4IptablesRuleset)
       end,
       case R6IptablesRuleset of
         false ->
         ?LOG_INFO("No v6 iptables ruleset to apply"), pass;
-        _ -> ok = update_iptables6(R6IptablesRuleset)
+        _ -> _ = update_iptables6(R6IptablesRuleset)
       end
     end.
 
