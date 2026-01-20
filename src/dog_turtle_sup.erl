@@ -40,7 +40,7 @@ child_specs() ->
 
 ips_publisher_spec() ->
     PublisherName = ips_publisher,
-    ConnName = default, 
+    ConnName = default,
     AMQPDecls = [
      #'exchange.declare' {exchange = <<"ips">>, type = <<"topic">>, durable = true},
      #'queue.declare' {queue = <<"ips">>, auto_delete = false, durable = true},
@@ -69,7 +69,7 @@ iptables_service_spec(Environment, Location, Group, Hostkey) ->
           #'queue.bind' {queue = QueueName, exchange = <<"ipsets">>, routing_key = <<"fanout">> },
           #'queue.bind' {queue = QueueName, exchange = <<"iptables">>, routing_key = HostRoutingKey },
           #'queue.bind' {queue = QueueName, exchange = <<"iptables">>, routing_key = GroupRoutingKey }
-		], 
+		],
       subscriber_count => 1,
       prefetch_count => 1,
       consume_queue => QueueName,
@@ -91,7 +91,7 @@ config_service_spec(Hostkey) ->
           #'exchange.declare' {exchange = <<"config">>, type = <<"direct">>, durable = true},
           #'queue.declare' {queue = QueueName , auto_delete = true, durable = true},
           #'queue.bind' {queue = QueueName, exchange = <<"config">>, routing_key = Hostkey }
-		], 
+		],
       subscriber_count => 1,
       prefetch_count => 1,
       consume_queue => QueueName,
@@ -117,7 +117,7 @@ file_transfer_service_spec(Environment, Location, Group, Hostkey) ->
             #'queue.declare' {queue = QueueName, auto_delete = true, durable = true},
             #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = GroupRoutingKey},
             #'queue.bind' {queue = QueueName, exchange = <<"file_transfer">>, routing_key = HostRoutingKey}
-		], 
+		],
       subscriber_count => 1,
       prefetch_count => 1,
       consume_queue => QueueName,
@@ -128,21 +128,21 @@ file_transfer_service_spec(Environment, Location, Group, Hostkey) ->
         ServiceSpec.
 
 -spec get_pid(atom()) -> {'error','deleted' | 'terminated'} | {'ok',pid()}.
-get_pid(Name) ->                                
-    case whereis(Name) of                       
-        Pid when is_pid(Pid) ->                 
-            {ok, Pid};                          
-        _ ->                                    
+get_pid(Name) ->
+    case whereis(Name) of
+        Pid when is_pid(Pid) ->
+            {ok, Pid};
+        _ ->
             Children = supervisor:which_children(?MODULE),
             case lists:keyfind(Name, 1, Children) of
                 {_N, Pid, _, _} when is_pid(Pid) ->
-                    {ok, Pid};                  
-                {_N, _, _, _} ->              
-                    {error, terminated};        
-                false ->                        
-                    {error, deleted}            
-            end                                 
-    end.   
+                    {ok, Pid};
+                {_N, _, _, _} ->
+                    {error, terminated};
+                false ->
+                    {error, deleted}
+            end
+    end.
 
 start_mq_services(Environment, Location, Group, Hostkey) ->
     start_config_service(Hostkey),
@@ -151,8 +151,6 @@ start_mq_services(Environment, Location, Group, Hostkey) ->
     start_ips_publisher().
 
 restart_mq_services(Environment, Location, Group, Hostkey) ->
-    stop_config_service(),
-    start_config_service(Hostkey),
     stop_iptables_service(),
     start_iptables_service(Environment, Location, Group, Hostkey),
     stop_file_transfer_service(),
@@ -193,8 +191,7 @@ restart_ips_agent() ->
     ok.
 
 stop_ips_agent() ->
-    supervisor:terminate_child(dog_sup, dog_agent),
-    ok.
+    supervisor:terminate_child(dog_sup, dog_agent).
 
 stop(Supervisor,Name) ->
     supervisor:terminate_child(Supervisor,Name),
