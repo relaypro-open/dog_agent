@@ -17,7 +17,6 @@
      start_link/0,
      watch_docker/0,
      watch_interfaces/0,
-     watch_iptables/0,
      create_ipsets/1, read_hash/0
   ]).
 
@@ -40,7 +39,6 @@
          set_interfaces/1,
          set_location/1,
          set_state/1,
-         watch_config/0,
          restart_command/0
         ]).
 
@@ -66,11 +64,6 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [],
               []).
 
--spec watch_iptables() -> ok.
-
-watch_iptables() ->
-    gen_server:call(?MODULE, watch_iptables).
-
 -spec watch_interfaces() -> ok.
 
 watch_interfaces() ->
@@ -89,7 +82,8 @@ watch_docker() ->
 
 read_hash() ->
   try
-    gen_server:call(?MODULE, read_hash, 20000)
+    Hash = gen_server:call(?MODULE, read_hash, 20000),
+    {ok, Hash}
   catch
     Class:Reason:Stacktrace ->
       ?LOG_ERROR(
@@ -198,11 +192,6 @@ group_routing_key() ->
     RoutingKey = get_group_routing_key(),
     binary_to_list(RoutingKey).
 
--spec watch_config() -> ok.
-
-watch_config() ->
-    gen_server:call(?MODULE, watch_config).
-
 -spec restart_command() -> {stop, restart_requested, ok, State :: dog_state:dog_state()}.
 restart_command() ->
     gen_server:call(?MODULE, restart_command).
@@ -218,17 +207,14 @@ restart_command() ->
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 
--spec init(term()) -> no_return().
+-spec init(term()) -> {ok, dog_state:dog_state()}.
 
 init(_Args) ->
-    StartWaitSeconds = application:get_env(dog, start_wait_seconds, 1),
-    ?LOG_INFO("Waiting ~s seconds for initialization",[StartWaitSeconds]),
-    timer:sleep(StartWaitSeconds * 1000) ,
     WatchInterfacesPollMilliseconds = application:get_env(dog, watch_interfaces_poll_seconds, 5) * 1000,
-    _IpsTimer = erlang:send_after(WatchInterfacesPollMilliseconds, self(),
+    erlang:send_after(WatchInterfacesPollMilliseconds, self(),
                   watch_interfaces),
     KeepalivePollMilliseconds = application:get_env(dog, keepalive_initial_delay_seconds, 60) * 1000,
-    _KeepaliveTimer = erlang:send_after(KeepalivePollMilliseconds, self(),
+    erlang:send_after(KeepalivePollMilliseconds, self(),
                     keepalive),
     start_docker_watch(),
     State = init_state(),
@@ -236,70 +222,14 @@ init(_Args) ->
     StateMap = dog_state:to_map(State),
     ?LOG_DEBUG("StateMap: ~p~n", [StateMap]),
     ?LOG_DEBUG("force update"),
-    dog_interfaces:publish_to_queue(StateMap), %force update
+    self() ! initial_publish, % Send message to self
     {ok, State}.
 
 init_state() ->
     ok = dog_config:do_init_config(),
-    Provider = dog_interfaces:get_provider(),
-    {ok, Interfaces} =
-    dog_interfaces:get_interfaces(Provider, []),
-    {Ec2Region,Ec2InstanceId, Ec2AvailabilityZone, Ec2SecurityGroupIds, Ec2OwnerId, Ec2InstanceTags, Ec2VpcId, Ec2SubnetId} = dog_interfaces:ec2_info(),
-    {OS_Distribution,OS_Version} = dog_interfaces:os_info(),
-    {ok, Hostname} = dog_interfaces:get_fqdn(),
-    Hash4Ipsets =
-    dog_iptables:create_hash(dog_iptables:read_current_ipv4_ipsets()),
-    Hash6Ipsets =
-    dog_iptables:create_hash(dog_iptables:read_current_ipv6_ipsets()),
-    Hash4Iptables =
-    dog_iptables:create_hash(dog_iptables:read_current_ipv4_iptables()),
-    Hash6Iptables =
-    dog_iptables:create_hash(dog_iptables:read_current_ipv6_iptables()),
-    IpsetHash = dog_ipset:read_hash(),
-    {ok, Version} = dog_app:get_version(),
-    UpdateType = force,
-    {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
-        {ok, ConfigMap} ->
-            ?LOG_DEBUG("ConfigMap: ~p", [ConfigMap]),
-            {
-              maps:get(<<"group">>, ConfigMap),
-              maps:get(<<"location">>, ConfigMap),
-              maps:get(<<"environment">>, ConfigMap),
-              maps:get(<<"hostkey">>, ConfigMap)
-            };
-        file_read_error ->
-            {
-            <<"">>,
-            <<"*">>,
-            <<"*">>,
-            <<"">>
-            }
-    end,
-    Hostkey1 = case Hostkey of
-      <<>> ->
-        throw("hostkey_not_set");
-      _ ->
-        Hostkey
-    end,
-    ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
-    DockerContainerIds = [],
-    State = dog_state:dog_state(Group, Hostname,
-                Location, Environment,
-                Hostkey1, Interfaces, Version,
-                Hash4Ipsets, Hash6Ipsets,
-                Hash4Iptables, Hash6Iptables,
-                Provider, UpdateType,
-                IpsetHash,
-		Ec2Region,
-		Ec2InstanceId,
-	        Ec2AvailabilityZone,
-	        Ec2SecurityGroupIds,
-	        Ec2OwnerId,Ec2InstanceTags,
-		OS_Distribution,OS_Version,
-		Ec2VpcId, Ec2SubnetId, DockerContainerIds),
-    State.
+    build_state().
 
-terminate_state() ->
+build_state() ->
     Provider = dog_interfaces:get_provider(),
     {ok, Interfaces} =
     dog_interfaces:get_interfaces(Provider, []),
@@ -314,7 +244,7 @@ terminate_state() ->
     dog_iptables:create_hash(dog_iptables:read_current_ipv4_iptables()),
     Hash6Iptables =
     dog_iptables:create_hash(dog_iptables:read_current_ipv6_iptables()),
-    IpsetHash = dog_ipset:read_hash(),
+    {ok, IpsetHash} = dog_ipset:read_hash(),
     {ok, Version} = dog_app:get_version(),
     UpdateType = force,
     {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
@@ -336,7 +266,7 @@ terminate_state() ->
     end,
     Hostkey1 = case Hostkey of
       <<>> ->
-        throw("hostkey_not_set");
+        exit({stop, hostkey_not_set});
       _ ->
         Hostkey
     end,
@@ -385,7 +315,8 @@ handle_call({create_ipsets,Ipsets}, _From, State) ->
     dog_ipset:create_ipsets(Ipsets),
     {reply, ok, State};
 handle_call(read_hash, _From, State) ->
-    Hash = dog_ipset:read_hash(), {reply, Hash, State};
+    Hash = dog_ipset:read_hash(),
+    {reply, Hash, State};
 handle_call(get_state, _From, State) ->
     {reply, State, State};
 handle_call({set_state, State}, _From, _OldState) ->
@@ -438,9 +369,6 @@ handle_call(host_routing_key, _From, State) ->
 handle_call(group_routing_key, _From, State) ->
     {ok, RoutingKey} = dog_ips:do_get_group_routing_key(State),
     {reply, RoutingKey, State};
-handle_call(watch_config, _From, State) ->
-    dog_config:do_watch_config(),
-    {reply, State};
 handle_call(restart_command, _From, State) ->
     {stop, restart_requested, ok, State};
 handle_call(_Request, _From, State) ->
@@ -478,6 +406,10 @@ handle_cast(Msg, State) ->
 
 handle_info(sub, State) ->
     ?LOG_DEBUG("sub: ~p", [State]), {noreply, State};
+handle_info(initial_publish, State) ->
+    StateMap = dog_state:to_map(State),
+    dog_interfaces:publish_to_queue(StateMap),
+    {noreply, State};
 handle_info(watch_interfaces, State) ->
     ?LOG_DEBUG("State: ~p", [State]),
     {ok, NewState} = dog_ips:do_watch_interfaces(State),
@@ -507,11 +439,9 @@ handle_info(Info, State) ->
 %%----------------------------------------------------------------------
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
-terminate(Reason, _State) ->
+terminate(Reason, State) ->
     %TODO: Send disconnect to dog_trainer, so agent will immediately go to 'inactive'
-    TerminateState = terminate_state(),
-    ?LOG_DEBUG("TerminateState: ~p", [TerminateState]),
-    TerminateStateMap = dog_state:to_map(TerminateState),
+    TerminateStateMap = dog_state:to_map(State),
     TerminateStateMap1 = maps:merge(TerminateStateMap, #{<<"active">> => <<"inactive">>}),
     ?LOG_DEBUG("TerminateStateMap1: ~p~n", [TerminateStateMap1]),
     ?LOG_DEBUG("force update"),
