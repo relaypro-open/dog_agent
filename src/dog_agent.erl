@@ -439,9 +439,9 @@ handle_info(Info, State) ->
 %%----------------------------------------------------------------------
 -spec terminate(_, dog_state:dog_state()) -> {close}.
 
-terminate(Reason, State) ->
+terminate(Reason, TerminateState) ->
     %TODO: Send disconnect to dog_trainer, so agent will immediately go to 'inactive'
-    TerminateStateMap = dog_state:to_map(State),
+    TerminateStateMap = dog_state:to_map(TerminateState),
     TerminateStateMap1 = maps:merge(TerminateStateMap, #{<<"active">> => <<"inactive">>}),
     ?LOG_DEBUG("TerminateStateMap1: ~p~n", [TerminateStateMap1]),
     ?LOG_DEBUG("force update"),

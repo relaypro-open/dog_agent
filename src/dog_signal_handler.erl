@@ -33,7 +33,7 @@ handle_event(sigterm, {ShutdownDelay} = State) ->
     ?LOG_INFO("*** SIGTERM received. Sending inactive update and then stopping in ~p ms~n",
               [ShutdownDelay]),
     erlang:send_after(ShutdownDelay, self(), stop),
-    dog_agent:terminate("Application shutdown",{}),
+    dog_agent:terminate("Application shutdown",dog_agent:get_state()),
     {ok, State};
 handle_event(ErrorMsg, S) ->
     % everything else goes to default handler
