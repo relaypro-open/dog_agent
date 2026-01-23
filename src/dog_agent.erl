@@ -315,7 +315,7 @@ handle_call({create_ipsets,Ipsets}, _From, State) ->
     dog_ipset:create_ipsets(Ipsets),
     {reply, ok, State};
 handle_call(read_hash, _From, State) ->
-    Hash = dog_ipset:read_hash(),
+  {ok, Hash} = dog_ipset:read_hash(),
     {reply, Hash, State};
 handle_call(get_state, _From, State) ->
     {reply, State, State};
