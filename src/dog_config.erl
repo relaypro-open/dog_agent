@@ -3,14 +3,14 @@
 -include("dog.hrl").
 
 -export([
-         do_init_config/0, 
-         do_watch_config/0, 
+         do_init_config/0,
+         %do_watch_config/0,
          environment/0,
-         get_config/0, 
-         group/0, 
-         hostkey/0, 
+         get_config/0,
+         group/0,
+         hostkey/0,
          location/0,
-         read_config_file/0, 
+         read_config_file/0,
          routing_key/0,
          subscriber_loop/4,
          write_config_file/4
@@ -38,7 +38,7 @@ do_watch_config() ->
     dog_turtle_sup:restart_mq_services(Environment, Location, Group, Hostkey),
     ok.
 
-subscriber_loop(_RoutingKey, _CType, Payload, State) -> 
+subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     ?LOG_DEBUG("Payload: ~p", [Payload]),
     Proplist = binary_to_term(Payload),
     ?LOG_DEBUG("Proplist: ~p", [Proplist]),

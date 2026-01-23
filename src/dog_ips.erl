@@ -77,7 +77,7 @@ do_watch_interfaces(StateOld) ->
     dog_iptables:create_hash(dog_iptables:read_current_ipv4_iptables()),
     Hash6Iptables =
     dog_iptables:create_hash(dog_iptables:read_current_ipv6_iptables()),
-    IpsetHash = dog_ipset:read_hash(),
+    {ok, IpsetHash} = dog_ipset:read_hash(),
     {ok, Version} = dog_app:get_version(),
     UpdateType = update,
     DockerContainerIds = dog_state:get_docker_container_ids(StateOld),
@@ -132,7 +132,8 @@ do_keepalive(State) ->
     ?LOG_DEBUG("do_keepalive"),
     UpdateType = keepalive,
     StateNew = dog_state:set_updatetype(State, UpdateType),
-    ?LOG_DEBUG("StateNew: ~p", [StateNew]),
+    ?LOG_DEBUG(#{statenew => StateNew}),
     StateMap = dog_state:to_map(StateNew),
+    ?LOG_DEBUG(#{statemap => StateMap}),
     dog_interfaces:publish_to_queue(StateMap),
     {ok, StateNew}.
