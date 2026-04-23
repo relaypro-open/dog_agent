@@ -151,6 +151,8 @@ start_mq_services(Environment, Location, Group, Hostkey) ->
     start_ips_publisher().
 
 restart_mq_services(Environment, Location, Group, Hostkey) ->
+    stop_config_service(),
+    start_config_service(Hostkey),
     stop_iptables_service(),
     start_iptables_service(Environment, Location, Group, Hostkey),
     stop_file_transfer_service(),

@@ -49,7 +49,7 @@ RUN mkdir -p /var/log/dog
 # Install the released application
 COPY --from=compile /data/_build/container/rel/dog /opt/dog
 RUN ls /opt/dog/lib
-RUN chmod 4555 /opt/dog/lib/erlexec-*/priv/x86_64-pc-linux-gnu/exec-port
+RUN chmod 4555 /opt/dog/lib/erlexec-*/priv/*/exec-port
 RUN mkdir -p /home/dog/bin
 RUN cp /usr/sbin/ipset /home/dog/bin/ipset
 RUN cp /usr/sbin/iptables-save /home/dog/bin/

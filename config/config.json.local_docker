@@ -1,1 +1,1 @@
-{"environment":"*","group":"local_group","hostkey":"hostname","location":"*"}
+{"environment":"*","group":"${DOG_GROUP}","hostkey":"hostname","location":"*"}
