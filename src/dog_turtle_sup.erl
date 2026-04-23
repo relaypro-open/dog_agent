@@ -15,12 +15,14 @@
          start_config_service/1,
          start_file_transfer_service/4,
          start_ips_publisher/0,
+         start_iptables_service/4,
          start_link/0,
          start_mq_services/4,
          stop_config_service/0,
          stop_file_transfer_service/0,
          stop_ips_agent/0,
-         stop_ips_publisher/0
+         stop_ips_publisher/0,
+         stop_iptables_service/0
        ]).
 
 -behaviour(supervisor).
@@ -30,7 +32,7 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 init([]) ->
-    child_specs().
+    {ok, { {one_for_all, 10, 60}, []} }.
 
 child_specs() ->
     ChildSpecs = [
@@ -145,9 +147,13 @@ get_pid(Name) ->
     end.
 
 start_mq_services(Environment, Location, Group, Hostkey) ->
+    stop_config_service(),
     start_config_service(Hostkey),
+    stop_iptables_service(),
     start_iptables_service(Environment, Location, Group, Hostkey),
+    stop_file_transfer_service(),
     start_file_transfer_service(Environment, Location, Group, Hostkey),
+    stop_ips_publisher(),
     start_ips_publisher().
 
 restart_mq_services(Environment, Location, Group, Hostkey) ->
@@ -196,5 +202,6 @@ stop_ips_agent() ->
     supervisor:terminate_child(dog_sup, dog_agent).
 
 stop(Supervisor,Name) ->
-    supervisor:terminate_child(Supervisor,Name),
-    supervisor:delete_child(Supervisor,Name).
+    _ = supervisor:terminate_child(Supervisor,Name),
+    _ = supervisor:delete_child(Supervisor,Name),
+    ok.

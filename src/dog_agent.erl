@@ -247,34 +247,15 @@ build_state() ->
     {ok, IpsetHash} = dog_ipset:read_hash(),
     {ok, Version} = dog_app:get_version(),
     UpdateType = force,
-    {Group, Location, Environment, Hostkey} = case dog_config:read_config_file() of
-        {ok, ConfigMap} ->
-            ?LOG_DEBUG("ConfigMap: ~p", [ConfigMap]),
-            {
-              maps:get(<<"group">>, ConfigMap),
-              maps:get(<<"location">>, ConfigMap),
-              maps:get(<<"environment">>, ConfigMap),
-              maps:get(<<"hostkey">>, ConfigMap)
-            };
-        file_read_error ->
-            {
-            <<"">>,
-            <<"*">>,
-            <<"*">>,
-            <<"">>
-            }
-    end,
-    Hostkey1 = case Hostkey of
-      <<>> ->
-        exit({stop, hostkey_not_set});
-      _ ->
-        Hostkey
-    end,
-    ?LOG_DEBUG("Hostkey: ~p",[Hostkey1]),
+    Group = dog_config:group(),
+    Location = dog_config:location(),
+    Environment = dog_config:environment(),
+    Hostkey = dog_config:hostkey(),
+    ?LOG_DEBUG("Hostkey: ~p",[Hostkey]),
     DockerContainerIds = [],
     State = dog_state:dog_state(Group, Hostname,
                 Location, Environment,
-                Hostkey1, Interfaces, Version,
+                Hostkey, Interfaces, Version,
                 Hash4Ipsets, Hash6Ipsets,
                 Hash4Iptables, Hash6Iptables,
                 Provider, UpdateType,

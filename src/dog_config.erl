@@ -57,7 +57,7 @@ subscriber_loop(_RoutingKey, _CType, Payload, State) ->
     write_config_file(Group, Location, Environment,
                       Hostkey),
     %Restarts ips_agent to have config change take effect, and immediate request of new iptables
-    dog_turtle_sup:restart_mq_services(Environment, Location, Group, Hostkey),
+    spawn(fun() -> dog_turtle_sup:restart_mq_services(Environment, Location, Group, Hostkey) end),
     {ack,State}.
 
 -spec write_config_file(_, _, _, _) -> ok.
@@ -121,5 +121,8 @@ group() ->
 
 hostkey() ->
     ConfigMap = get_config(),
-    Hostkey = maps:get(<<"hostkey">>, ConfigMap, <<"">>),
-    Hostkey.
+    case maps:get(<<"hostkey">>, ConfigMap, <<"">>) of
+        <<>> -> dog_interfaces:fqdn();
+        <<"hostname">> -> dog_interfaces:fqdn();
+        Hostkey -> Hostkey
+    end.
